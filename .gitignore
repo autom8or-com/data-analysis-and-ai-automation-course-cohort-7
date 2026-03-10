@@ -9,98 +9,82 @@
 datasets/**/*.csv
 datasets/**/*.xlsx
 # Full Amazon reviews file — 287MB, exceeds GitHub limits; download from Kaggle
-datasets/phase-1-excel/projects/group-1-customer-satisfaction/Reviews.csv
+# (lives inside datasets/phase-1-excel/projects/group-1-customer-satisfaction/ on disk)
 
-# Instructor solution files — never share with students
-curriculum/phase-1-excel/weeks-01-06-teaching/week-01-data-import-and-navigation/01-wednesday/solutions
-curriculum/phase-1-excel/weeks-01-06-teaching/week-01-data-import-and-navigation/02-thursday/solutions
-curriculum/phase-1-excel/weeks-01-06-teaching/week-02-excel-basics/01-wednesday/solutions
-curriculum/phase-1-excel/weeks-01-06-teaching/week-02-excel-basics/02-thursday/solutions
-curriculum/phase-1-excel/weeks-01-06-teaching/week-03-advanced-functions/01-wednesday/solutions
-curriculum/phase-1-excel/weeks-01-06-teaching/week-03-advanced-functions/02-thursday/solutions
-curriculum/phase-1-excel/weeks-01-06-teaching/week-04-pivot-tables-and-charts/01-wednesday/solutions
-curriculum/phase-1-excel/weeks-01-06-teaching/week-04-pivot-tables-and-charts/02-thursday/solutions
-curriculum/phase-1-excel/weeks-01-06-teaching/week-05-power-query-part-1/01-wednesday/solutions
-curriculum/phase-1-excel/weeks-01-06-teaching/week-05-power-query-part-1/02-thursday/solutions
-curriculum/phase-1-excel/weeks-01-06-teaching/week-06-power-query-part-2/01-wednesday/solutions
-curriculum/phase-1-excel/weeks-01-06-teaching/week-06-power-query-part-2/02-thursday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-01-python-fundamentals/01-wednesday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-01-python-fundamentals/02-thursday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-02-collections-and-control-flow/01-wednesday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-02-collections-and-control-flow/02-thursday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-03-functions-and-data/01-wednesday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-03-functions-and-data/02-thursday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-04-pandas-introduction/01-wednesday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-04-pandas-introduction/02-thursday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-05-groupby-and-aggregation/01-wednesday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-05-groupby-and-aggregation/02-thursday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-06-data-cleaning/01-wednesday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-06-data-cleaning/02-thursday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-07-merging-dataframes/01-wednesday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-07-merging-dataframes/02-thursday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-08-visualisation-and-streamlit/01-wednesday/solutions
-curriculum/phase-2a-python/weeks-01-08-teaching/week-08-visualisation-and-streamlit/02-thursday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-01-select-where-order-by/01-wednesday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-01-select-where-order-by/02-thursday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-02-groupby-aggregates-having/01-wednesday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-02-groupby-aggregates-having/02-thursday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-03-joins/01-wednesday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-03-joins/02-thursday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-04-case-when-and-date-functions/01-wednesday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-04-case-when-and-date-functions/02-thursday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-05-subqueries-and-window-functions/01-wednesday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-05-subqueries-and-window-functions/02-thursday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-06-multi-table-joins/01-wednesday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-06-multi-table-joins/02-thursday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-07-ctes-and-advanced-analytics/01-wednesday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-07-ctes-and-advanced-analytics/02-thursday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-08-end-to-end-analysis/01-wednesday/solutions
-curriculum/phase-2b-sql/weeks-01-08-teaching/week-08-end-to-end-analysis/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-01-data-infrastructure-setup/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-01-data-infrastructure-setup/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-02-error-handling-and-dashboard/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-02-error-handling-and-dashboard/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-03-ai-content-creation/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-03-ai-content-creation/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-04-lead-capture-and-crm/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-04-lead-capture-and-crm/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-05-marketing-analytics/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-05-marketing-analytics/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-06-marketing-demo-day/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-06-marketing-demo-day/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-07-order-processing/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-07-order-processing/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-08-invoicing-and-revenue/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-08-invoicing-and-revenue/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-09-customer-communication/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-09-customer-communication/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-10-revenue-operations-demo/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-10-revenue-operations-demo/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-11-inventory-management/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-11-inventory-management/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-12-production-planning/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-12-production-planning/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-13-delivery-and-logistics/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-13-delivery-and-logistics/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-14-operations-demo/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-14-operations-demo/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-15-system-integration/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-15-system-integration/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-16-advanced-analytics/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-16-advanced-analytics/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-17-production-readiness/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-17-production-readiness/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-18-ai-agents/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-18-ai-agents/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-19-advanced-prompting-and-pipelines/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-19-advanced-prompting-and-pipelines/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-20-customer-facing-forms/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-20-customer-facing-forms/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-21-dashboard-and-polish/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-21-dashboard-and-polish/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-22-productionization/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-22-productionization/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-23-capstone-development/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-23-capstone-development/02-thursday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-24-final-presentations/01-wednesday/solutions
-curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-24-final-presentations/02-thursday/solutions
+# ── INSTRUCTOR-ONLY ───────────────────────────────────────────────────────────
+# Everything below is hidden from students until explicitly released.
+# To release a week: delete its line, add content, commit.
+# To release datasets/projects: delete the relevant line, commit.
+
+# Master curriculum reference files (instructor use only)
+curriculum/phase-1-excel/teaching-curriculum.md
+curriculum/phase-2a-python/teaching-curriculum.md
+curriculum/phase-2b-sql/teaching-curriculum.md
+curriculum/phase-2c-capstone/teaching-curriculum.md
+curriculum/phase-3-ai-automation/teaching-curriculum.md
+
+# Phase 1 project specs — release at Week 7 (group reveal)
+curriculum/phase-1-excel/projects/
+
+# Project datasets — release at Week 7 (group reveal)
+datasets/phase-1-excel/projects/
+
+# Phase 2+ dataset folder — release when Phase 2a starts
+datasets/phase-2-python-sql/
+
+# Week-01 solutions (week is live; solutions are instructor-only)
+curriculum/phase-1-excel/weeks-01-06-teaching/week-01-data-import-and-navigation/01-wednesday/solutions/
+curriculum/phase-1-excel/weeks-01-06-teaching/week-01-data-import-and-navigation/02-thursday/solutions/
+
+# Phase 1 — future weeks (delete a line when content is ready to release)
+curriculum/phase-1-excel/weeks-01-06-teaching/week-02-excel-basics/
+curriculum/phase-1-excel/weeks-01-06-teaching/week-03-advanced-functions/
+curriculum/phase-1-excel/weeks-01-06-teaching/week-04-pivot-tables-and-charts/
+curriculum/phase-1-excel/weeks-01-06-teaching/week-05-power-query-part-1/
+curriculum/phase-1-excel/weeks-01-06-teaching/week-06-power-query-part-2/
+
+# Phase 2a — all weeks hidden until Phase 2a starts
+curriculum/phase-2a-python/weeks-01-08-teaching/week-01-python-fundamentals/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-02-collections-and-control-flow/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-03-functions-and-data/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-04-pandas-introduction/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-05-groupby-and-aggregation/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-06-data-cleaning/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-07-merging-dataframes/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-08-visualisation-and-streamlit/
+
+# Phase 2b — all weeks hidden until Phase 2b starts
+curriculum/phase-2b-sql/weeks-01-08-teaching/week-01-select-where-order-by/
+curriculum/phase-2b-sql/weeks-01-08-teaching/week-02-groupby-aggregates-having/
+curriculum/phase-2b-sql/weeks-01-08-teaching/week-03-joins/
+curriculum/phase-2b-sql/weeks-01-08-teaching/week-04-case-when-and-date-functions/
+curriculum/phase-2b-sql/weeks-01-08-teaching/week-05-subqueries-and-window-functions/
+curriculum/phase-2b-sql/weeks-01-08-teaching/week-06-multi-table-joins/
+curriculum/phase-2b-sql/weeks-01-08-teaching/week-07-ctes-and-advanced-analytics/
+curriculum/phase-2b-sql/weeks-01-08-teaching/week-08-end-to-end-analysis/
+
+# Phase 3 — all weeks hidden until Phase 3 starts
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-01-data-infrastructure-setup/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-02-error-handling-and-dashboard/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-03-ai-content-creation/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-04-lead-capture-and-crm/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-05-marketing-analytics/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-06-marketing-demo-day/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-07-order-processing/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-08-invoicing-and-revenue/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-09-customer-communication/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-10-revenue-operations-demo/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-11-inventory-management/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-12-production-planning/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-13-delivery-and-logistics/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-14-operations-demo/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-15-system-integration/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-16-advanced-analytics/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-17-production-readiness/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-18-ai-agents/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-19-advanced-prompting-and-pipelines/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-20-customer-facing-forms/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-21-dashboard-and-polish/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-22-productionization/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-23-capstone-development/
+curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-24-final-presentations/
