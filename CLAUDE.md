@@ -11,7 +11,6 @@ A curriculum repository for PORA Academy Cohort 7 — a ~14-month data analysis 
 ```
 curriculum/          ← one folder per phase; each has teaching-curriculum.md + session folders
 datasets/            ← zip files per phase/group + README.md in each subfolder (raw CSVs excluded from git)
-.artifact/           ← original/source materials; treat as read-only reference
 ```
 
 **Phases and their curriculum paths:**
@@ -73,7 +72,6 @@ Each `teaching-curriculum.md` is the authoritative, fully detailed session plan.
 - 24 weeks, 90-minute sessions, structured into 7 internal Modules (not "phases" — avoid that word to prevent confusion with the programme-level phase numbering)
 - Teaching case: Ready Delight Foods and Confectioneries (Nigerian peanut SME)
 - Data lives in NocoDB (self-hosted), not in CSV files — students build the database in Module 1
-- Source reference (do not edit): `.artifact/ai-automation-use-case/ready_delight_automation_curriculum.md`
 - `lecture-materials/` subfolder is `workflows/` (n8n JSON exports), not `notebooks/`
 
 ## Extending the curriculum
@@ -82,4 +80,3 @@ When scaffolding new session folders, follow the Python script pattern used in e
 
 When writing new curriculum content, read the existing `teaching-curriculum.md` for the relevant phase first to match tone, formatting, and verification standard before adding or modifying sessions.
 
-The `.artifact/` directory holds original source files used to build this curriculum. Treat it as read-only.
