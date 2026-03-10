@@ -113,14 +113,24 @@ data-analysis-and-ai-automation-course-cohort-7/
 │
 └── datasets/
     ├── phase-1-excel/
-    │   ├── teaching/                       ← data.csv (UCI Online Retail, 541,909 rows)
+    │   ├── teaching/
+    │   │   ├── teaching-data.zip           ← data.csv (UCI Online Retail, 541,909 rows)
+    │   │   └── README.md
     │   └── projects/
-    │       ├── group-1-customer-satisfaction/   ← Reviews_sample_50k.csv + Reviews.csv
-    │       ├── group-2-product-performance/     ← Sample - Superstore.csv
-    │       ├── group-3-publishing-intelligence/ ← bestsellers with categories.csv
-    │       └── group-4-uk-retail-revenue/       ← README.md (uses teaching/data.csv)
+    │       ├── group-1-customer-satisfaction/
+    │       │   ├── group-1-data.zip        ← Reviews_sample_50k.csv (50K rows)
+    │       │   └── README.md               ← full Reviews.csv (287MB): download from Kaggle
+    │       ├── group-2-product-performance/
+    │       │   ├── group-2-data.zip        ← Sample - Superstore.csv
+    │       │   └── README.md
+    │       ├── group-3-publishing-intelligence/
+    │       │   ├── group-3-data.zip        ← bestsellers with categories.csv
+    │       │   └── README.md
+    │       └── group-4-uk-retail-revenue/  ← README.md (uses teaching-data.zip)
     │
-    └── phase-2-python-sql/                 ← 11 Olist CSVs (used by Phase 2a, 2b, 2c)
+    └── phase-2-python-sql/
+        ├── olist-data.zip                  ← all 11 Olist CSVs
+        └── README.md
 ```
 
 ---
@@ -166,19 +176,23 @@ weeks-NN-MM-teaching/
 
 ## Datasets Reference
 
+> **Note:** Raw CSV and XLSX files are excluded from this repository (`.gitignore`). Each `datasets/` subfolder contains a **zip file** with the CSVs for that group, plus a `README.md` with download instructions. Distribute via Google Drive.
+
 ### Phase 1 — Excel
 
-| Group | File | Rows | Location |
+| Group | Zip file | Contents | Rows |
 |---|---|---|---|
-| Teaching (Wks 1–6) | `data.csv` | 541,909 | `datasets/phase-1-excel/teaching/` |
-| Group 1 — Customer Satisfaction | `Reviews_sample_50k.csv` | 50,000 | `datasets/phase-1-excel/projects/group-1-customer-satisfaction/` |
-| Group 2 — Product Performance | `Sample - Superstore.csv` | 9,994 | `datasets/phase-1-excel/projects/group-2-product-performance/` |
-| Group 3 — Publishing Intelligence | `bestsellers with categories.csv` | 550 | `datasets/phase-1-excel/projects/group-3-publishing-intelligence/` |
-| Group 4 — UK Retail Revenue | *(same as teaching)* | 541,909 | `datasets/phase-1-excel/teaching/data.csv` |
+| Teaching (Wks 1–6) | `teaching-data.zip` | `data.csv` | 541,909 |
+| Group 1 — Customer Satisfaction | `group-1-data.zip` | `Reviews_sample_50k.csv` | 50,000 |
+| Group 2 — Product Performance | `group-2-data.zip` | `Sample - Superstore.csv` | 9,994 |
+| Group 3 — Publishing Intelligence | `group-3-data.zip` | `bestsellers with categories.csv` | 550 |
+| Group 4 — UK Retail Revenue | *(uses teaching zip)* | `data.csv` | 541,909 |
+
+> **Group 1 note:** The full Amazon Fine Food Reviews dataset (`Reviews.csv`, 287 MB) exceeds GitHub's file size limit and is **not** included in the zip. Download directly from [Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews). The curriculum uses the 50K stratified sample only.
 
 ### Phases 2a / 2b / 2c — Olist
 
-All three phases use the same 11 CSVs in `datasets/phase-2-python-sql/`. Upload the entire folder to a shared Google Drive at programme start; students mount in every Colab session.
+All three phases use the same 11 CSVs packed in `datasets/phase-2-python-sql/olist-data.zip`. Unzip and upload to a shared Google Drive at programme start; students mount in every Colab session.
 
 | File | Rows | Key use |
 |---|---|---|
