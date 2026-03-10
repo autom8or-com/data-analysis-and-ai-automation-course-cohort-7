@@ -163,14 +163,14 @@ weeks-NN-MM-teaching/
         └── (same structure)
 ```
 
-**`lecture-materials/` subfolder by phase:**
+**Contents by folder and phase:**
 
-| Phase | Subfolder | Contents |
-|---|---|---|
-| 1 — Excel | *(flat)* | Excel demo workbooks |
-| 2a — Python | `notebooks/` | Colab `.ipynb` demo notebooks |
-| 2b — SQL | `notebooks/` | Colab `.ipynb` demo notebooks |
-| 3 — AI Automation | `workflows/` | n8n workflow `.json` exports |
+| Phase | `lecture-materials/` | `exercises/` | `solutions/` |
+|---|---|---|---|
+| 1 — Excel | `week-NN-[wed\|thu]-demo.xlsx` — pre-built demo workbook (end state) | `week-NN-[wed\|thu]-exercises.xlsx` — 2,000-row sample + blank formula cells | `week-NN-[wed\|thu]-solutions.xlsx` — completed answers *(git-ignored)* |
+| 2a — Python | `notebooks/` — Colab `.ipynb` demo notebooks | student starter notebooks | solution notebooks *(git-ignored)* |
+| 2b — SQL | `notebooks/` — Colab `.ipynb` demo notebooks | student starter notebooks | solution notebooks *(git-ignored)* |
+| 3 — AI Automation | `workflows/` — n8n `.json` exports | exercise prompts / starter configs | solutions *(git-ignored)* |
 
 ---
 
