@@ -29,8 +29,8 @@ curriculum/phase-1-excel/projects/
 # Project datasets — release at Week 7 (group reveal)
 datasets/phase-1-excel/projects/
 
-# Phase 2+ dataset — release when Phase 2a starts
-datasets/phase-2-python-sql/olist-data.zip
+# Phase 2+ dataset folder — release when Phase 2a starts
+datasets/phase-2-python-sql/
 
 # Week-01 solutions (week is live; solutions are instructor-only)
 curriculum/phase-1-excel/weeks-01-06-teaching/week-01-data-import-and-navigation/01-wednesday/solutions/
