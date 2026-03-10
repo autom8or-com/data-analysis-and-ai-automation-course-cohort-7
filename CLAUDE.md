@@ -10,7 +10,7 @@ A curriculum repository for PORA Academy Cohort 7 — a ~14-month data analysis 
 
 ```
 curriculum/          ← one folder per phase; each has teaching-curriculum.md + session folders
-datasets/            ← raw data files, organised by phase
+datasets/            ← zip files per phase/group + README.md in each subfolder (raw CSVs excluded from git)
 .artifact/           ← original/source materials; treat as read-only reference
 ```
 
@@ -53,19 +53,19 @@ Each `teaching-curriculum.md` is the authoritative, fully detailed session plan.
 ## Phase-specific notes
 
 **Phase 1 — Excel**
-- Dataset for Weeks 1–6 teaching: `datasets/phase-1-excel/teaching/data.csv` (UCI Online Retail, 541,909 rows)
-- Group project datasets: `datasets/phase-1-excel/projects/group-N-name/`
-- Group 4 uses the same file as teaching; its project folder contains only a README pointing to it
+- Datasets are in zip files: `datasets/phase-1-excel/teaching/teaching-data.zip` (UCI Online Retail, 541,909 rows) and `datasets/phase-1-excel/projects/group-N-name/group-N-data.zip`
+- Group 4 uses the same file as teaching; its folder contains only a README
+- `Reviews.csv` (287 MB) is excluded from git entirely — must be downloaded from Kaggle; curriculum uses `Reviews_sample_50k.csv` only
 - Additional resources (cheatsheets, PQ reference): `curriculum/phase-1-excel/resources/`
 
 **Phase 2a — Python / Phase 2b — SQL**
-- Both use the Olist dataset: `datasets/phase-2-python-sql/` (11 CSVs, upload to shared Google Drive)
+- Both use the Olist dataset: `datasets/phase-2-python-sql/olist-data.zip` (11 CSVs; unzip and upload to shared Google Drive)
 - SQL is taught via SQLite in-memory inside Google Colab (`sqlite3` + `pd.read_sql()`), not a standalone DB
 - DeepSeek AI introduced at Week 4 in both phases; Weeks 1–3 are no-AI
 - Key verified Olist stats are embedded throughout both curricula — do not alter them without re-running against the data
 
 **Phase 2c — Capstone**
-- No session folder scaffold (4-week project, not teaching weeks)
+- Has only `teaching-curriculum.md` at top level; no per-session folder scaffold (4-week group project)
 - All 4 groups use the same Olist dataset with different analytical focus
 - Deliverable: Streamlit app deployed to Streamlit Community Cloud via GitHub
 
