@@ -74,6 +74,23 @@ Each `teaching-curriculum.md` is the authoritative, fully detailed session plan.
 - Data lives in NocoDB (self-hosted), not in CSV files — students build the database in Module 1
 - `lecture-materials/` subfolder is `workflows/` (n8n JSON exports), not `notebooks/`
 
+## Content visibility and progressive disclosure
+
+This repo uses progressive disclosure — students only see content for the current week.
+All `teaching-curriculum.md` files, project specs, future week folders, and most datasets
+are gitignored and exist only on the instructor's local machine.
+
+**What is currently live (visible to students):**
+- `curriculum/phase-1-excel/weeks-01-06-teaching/week-01-data-import-and-navigation/` (exercises + demo only; solutions gitignored)
+- `curriculum/phase-1-excel/resources/` (cheatsheets)
+- `datasets/phase-1-excel/teaching/` (teaching-data.zip)
+
+**To release a new week:** delete the week's line from `.gitignore`, add the two `solutions/` paths
+back as explicit entries, then commit content and `.gitignore` together.
+
+**Note:** `teaching-curriculum.md` files are gitignored — read them from disk, not via `git show`.
+If a file appears missing, check `.gitignore` before assuming it doesn't exist.
+
 ## Extending the curriculum
 
 When scaffolding new session folders, follow the Python script pattern used in earlier sessions (create directories, write `.gitkeep` in empty leaf dirs, write pre-filled `lesson-plan.md`). Do not create folders manually one by one.
