@@ -1,3 +1,6 @@
+# Local prompt scratch pad
+PROMPTS.md
+
 # macOS metadata
 .DS_Store
 **/.DS_Store
@@ -40,11 +43,19 @@ curriculum/phase-1-excel/weeks-01-06-teaching/week-01-data-import-and-navigation
 curriculum/phase-1-excel/weeks-01-06-teaching/week-02-excel-basics/01-wednesday/solutions/
 curriculum/phase-1-excel/weeks-01-06-teaching/week-02-excel-basics/02-thursday/solutions/
 
-# Phase 1 — future weeks (delete a line when content is ready to release)
-curriculum/phase-1-excel/weeks-01-06-teaching/week-03-advanced-functions/
+# Week-03 solutions (week is live; solutions are instructor-only)
+curriculum/phase-1-excel/weeks-01-06-teaching/week-03-advanced-functions/01-wednesday/solutions/
+curriculum/phase-1-excel/weeks-01-06-teaching/week-03-advanced-functions/02-thursday/solutions/
+
+# Week-04 solutions (week is live; solutions are instructor-only)
 curriculum/phase-1-excel/weeks-01-06-teaching/week-04-pivot-tables-and-charts/01-wednesday/solutions/
 curriculum/phase-1-excel/weeks-01-06-teaching/week-04-pivot-tables-and-charts/02-thursday/solutions/
-curriculum/phase-1-excel/weeks-01-06-teaching/week-05-power-query-part-1/
+
+# Week-05 solutions (week is live; solutions are instructor-only)
+curriculum/phase-1-excel/weeks-01-06-teaching/week-05-power-query-part-1/01-wednesday/solutions/
+curriculum/phase-1-excel/weeks-01-06-teaching/week-05-power-query-part-1/02-thursday/solutions/
+
+# Phase 1 — future weeks (delete a line when content is ready to release)
 curriculum/phase-1-excel/weeks-01-06-teaching/week-06-power-query-part-2/
 
 # Phase 2a — all weeks hidden until Phase 2a starts
