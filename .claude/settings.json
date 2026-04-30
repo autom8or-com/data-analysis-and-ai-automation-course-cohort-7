@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{
+          "type": "command",
+          "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -q 'git commit'; then BRANCH=$(git branch --show-current); if [ \"$BRANCH\" = \"main\" ]; then echo 'BLOCKED: Use a content/ feature branch. Do not commit directly to main.'; exit 1; fi; fi"
+        }]
+      }
+    ]
+  }
+}

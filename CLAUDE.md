@@ -91,6 +91,21 @@ back as explicit entries, then commit content and `.gitignore` together.
 **Note:** `teaching-curriculum.md` files are gitignored — read them from disk, not via `git show`.
 If a file appears missing, check `.gitignore` before assuming it doesn't exist.
 
+## File dependencies
+
+Before starting any content generation pipeline, verify these files exist on disk:
+- `curriculum/phase-2a-python/teaching-curriculum.md` (gitignored — check disk, not git)
+- `datasets/phase-2-python-sql/olist-data.zip`
+
+If either is missing, stop and tell the user immediately. Do not infer or fabricate content.
+
+## Interruption recovery
+
+For long-running pipelines (notebooks, Drive upload, NocoDB, Telegram):
+- After each publishing step (steps 11–14: git commit, Drive upload, NocoDB, Telegram), write progress to `~/.claude/cache/phase2a-pipeline-state.json`
+- On resume: read that file first, skip completed steps, check out the existing branch rather than creating a new one
+- Validate that all expected output files exist on disk before marking a step complete
+
 ## Extending the curriculum
 
 When scaffolding new session folders, follow the Python script pattern used in earlier sessions (create directories, write `.gitkeep` in empty leaf dirs, write pre-filled `lesson-plan.md`). Do not create folders manually one by one.

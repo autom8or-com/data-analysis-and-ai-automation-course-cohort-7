@@ -7,6 +7,12 @@ PROMPTS.md
 
 # Claude Code local settings
 .claude/settings.local.json
+.claude/phase2a-pipeline-state.json
+.claude/cache/
+
+# Environment variables — never commit; share with co-teachers directly
+.env
+.env.example
 
 # Raw dataset files — use the .zip files in each folder instead
 datasets/**/*.csv
