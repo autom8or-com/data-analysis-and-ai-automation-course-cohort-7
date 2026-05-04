@@ -26,8 +26,6 @@ datasets/**/*.xlsx
 # To release datasets/projects: delete the relevant line, commit.
 
 # Master curriculum reference files (instructor use only)
-curriculum/phase-1-excel/teaching-curriculum.md
-curriculum/phase-2a-python/teaching-curriculum.md
 curriculum/phase-2b-sql/teaching-curriculum.md
 curriculum/phase-2c-capstone/teaching-curriculum.md
 curriculum/phase-3-ai-automation/teaching-curriculum.md
