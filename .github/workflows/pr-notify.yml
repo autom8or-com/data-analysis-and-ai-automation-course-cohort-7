@@ -1,0 +1,89 @@
+name: PR Notify — Phase 2a Content
+
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+    branches: [main]
+  issue_comment:
+    types: [created]
+    branches: [main]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    # Only run for PR comments on PRs whose head branch starts with "content/week-"
+    if: |
+      (github.event_name == 'pull_request' && startsWith(github.event.pull_request.head.ref, 'content/week-')) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request != null && github.event.issue.pull_request.merged_at == null)
+
+    steps:
+      - name: PR Opened or Updated
+        if: github.event_name == 'pull_request' && github.event.action != 'closed'
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message_thread_id: ${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}
+          format: markdown
+          message: |
+            📬 **PR ${{ github.event.action == 'opened' && 'Created' || 'Updated' }} — Phase 2a Python**
+
+            **PR:** #${{ github.event.pull_request.number }}
+            **Title:** ${{ github.event.pull_request.title }}
+            **Branch:** `${{ github.event.pull_request.head.ref }}`
+
+            🔗 ${{ github.event.pull_request.html_url }}
+
+            **Actions:**
+            • Merge to publish content
+            • Comment `/rework` to request changes
+            • Close to cancel
+
+      - name: PR Merged → Notify Facilitators
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_GROUP_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          message: |
+            🎉 **Phase 2a Python — Content Published!**
+
+            **PR:** #${{ github.event.pull_request.number }}
+            **Title:** ${{ github.event.pull_request.title }}
+            **Merged by:** ${{ github.event.pull_request.merged_by.login }}
+
+            ✅ Content is now live for students on GitHub.
+            📂 Solutions available on Google Drive.
+
+      - name: PR Closed (not merged)
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == false
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message_thread_id: ${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}
+          format: markdown
+          message: |
+            ❌ **PR Closed — Not Merged**
+
+            **PR:** #${{ github.event.pull_request.number }}
+            **Title:** ${{ github.event.pull_request.title }}
+
+            This PR was closed without merging. Run the generation pipeline again to create a new PR.
+
+      - name: Rework Comment Detected
+        if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '/rework')
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message_thread_id: ${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}
+          format: markdown
+          message: |
+            🔄 **Rework Requested — PR #${{ github.event.issue.number }}**
+
+            **Comment by:** ${{ github.event.comment.user.login }}
+            **PR:** ${{ github.event.issue.html_url }}
+
+            > ${{ github.event.comment.body }}
