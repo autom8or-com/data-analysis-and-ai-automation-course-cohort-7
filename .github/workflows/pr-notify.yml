@@ -4,19 +4,14 @@ on:
   pull_request:
     types: [opened, synchronize, closed]
     branches: [main]
-  issue_comment:
-    types: [created]
-    branches: [main]
 
 jobs:
   notify:
     runs-on: ubuntu-latest
-    # Only run for content PRs or comments on content PRs
-    if: |
-      (github.event_name == 'pull_request' && startsWith(github.event.pull_request.head.ref, 'content/week-')) ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request != null && github.event.issue.pull_request.merged_at == null)
+    if: startsWith(github.event.pull_request.head.ref, 'content/week-')
 
     steps:
+      # ── PR Opened or Updated ──────────────────────────────────
       - name: PR Opened or Updated
         if: github.event_name == 'pull_request' && github.event.action != 'closed'
         shell: bash
@@ -30,7 +25,7 @@ jobs:
           🔗 ${{ github.event.pull_request.html_url }}
 
           **Actions:**
-          • Merge to publish content
+          • Comment `/approve` to merge and publish
           • Comment `/rework` to request changes
           • Close to cancel'
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
@@ -39,6 +34,14 @@ jobs:
             -d "parse_mode=Markdown" \
             --data-urlencode "text=$MSG"
 
+      # ── PR Merged: Checkout for NocoDB + notifications ────────
+      - name: Checkout repo
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # ── PR Merged → Notify Facilitators ───────────────────────
       - name: PR Merged → Notify Facilitators
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
         shell: bash
@@ -56,23 +59,106 @@ jobs:
             -d "parse_mode=Markdown" \
             --data-urlencode "text=$MSG"
 
-      - name: PR Merged → Update NocoDB
+      # ── PR Merged → Notify PA Group (Content Pipeline) ─────────
+      - name: PR Merged → Notify PA Group
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
         shell: bash
         run: |
-          curl -s -X PATCH "https://nocodb.aiautom8or.com/api/v2/tables/${{ secrets.NOCODB_WEEKLY_TABLE_ID }}/records" \
-            -H "xc-token: ${{ secrets.NOCODB_API_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "$(cat <<EOF
-          {
-            "records": [{
-              "Id": "${{ secrets.NOCODB_WEEK_2_RECORD_ID }}",
-              "status": "published"
-            }]
-          }
-          EOF
-          )"
+          MSG='🎉 **Phase 2a Python — Content Published!**
 
+          **PR:** #${{ github.event.pull_request.number }}
+          **Title:** ${{ github.event.pull_request.title }}
+          **Merged by:** ${{ github.event.pull_request.merged_by.login }}
+
+          ✅ Content is now live for students on GitHub.
+          📂 Solutions available on Google Drive.'
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
+            -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=$MSG"
+
+      # ── PR Merged → Update NocoDB (full record) ───────────────
+      - name: PR Merged → Update NocoDB
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        shell: bash
+        env:
+          NOCODB_TOKEN: ${{ secrets.NOCODB_API_TOKEN }}
+        run: |
+          # Parse week number from branch name
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          WEEK=$(echo "$BRANCH" | sed -E 's/.*week-0*([0-9]+).*/\1/')
+          TOPIC=$(echo "${{ github.event.pull_request.title }}" | sed -E 's/^Phase 2a Python — Week [0-9]+: //')
+
+          # Build notebook sheet name JSONs (nocoDB phase2a_schedule schema)
+          WED_SHEETS=$(ls curriculum/phase-2a-python/weeks-01-08-teaching/week-$(printf "%02d" $WEEK)-*/01-wednesday/lecture-materials/*.ipynb 2>/dev/null | xargs -n1 basename | jq -R -s -c 'split("\n")[:-1]')
+          if [ -z "$WED_SHEETS" ] || [ "$WED_SHEETS" = "[]" ]; then
+            WED_SHEETS='[]'
+          fi
+
+          THU_SHEETS=$(ls curriculum/phase-2a-python/weeks-01-08-teaching/week-$(printf "%02d" $WEEK)-*/02-thursday/lecture-materials/*.ipynb 2>/dev/null | xargs -n1 basename | jq -R -s -c 'split("\n")[:-1]')
+          if [ -z "$THU_SHEETS" ] || [ "$THU_SHEETS" = "[]" ]; then
+            THU_SHEETS='[]'
+          fi
+
+          # Special flags
+          DEEPSEEK_FLAG=false
+          STREAMLIT_FLAG=false
+          if [ "$WEEK" = "4" ]; then DEEPSEEK_FLAG=true; fi
+          if [ "$WEEK" = "8" ]; then STREAMLIT_FLAG=true; fi
+
+          # Build lesson plan URLs
+          SLUG=$(ls -d curriculum/phase-2a-python/weeks-01-08-teaching/week-$(printf "%02d" $WEEK)-* 2>/dev/null | head -1 | xargs basename)
+          WED_URL="https://raw.githubusercontent.com/autom8or-com/data-analysis-and-ai-automation-course-cohort-7/main/curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/01-wednesday/lesson-plan.md"
+          THU_URL="https://raw.githubusercontent.com/autom8or-com/data-analysis-and-ai-automation-course-cohort-7/main/curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/02-thursday/lesson-plan.md"
+
+          # Find the record by week_number
+          echo "🔍 Looking up NocoDB record for Week $WEEK..."
+          RECORD_ID=$(curl -s "https://nocodb.aiautom8or.com/api/v2/tables/${{ secrets.NOCODB_WEEKLY_TABLE_ID }}/records?where=(week_number,eq,${WEEK})" \
+            -H "xc-token: $NOCODB_TOKEN" \
+            | jq -r '.list[0].Id // empty')
+
+          if [ -z "$RECORD_ID" ]; then
+            echo "⚠ No NocoDB record found for Week $WEEK — creating one"
+            curl -s -X POST "https://nocodb.aiautom8or.com/api/v2/tables/${{ secrets.NOCODB_WEEKLY_TABLE_ID }}/records" \
+              -H "xc-token: $NOCODB_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"week_number\": $WEEK,
+                \"phase\": \"phase-2a-python\",
+                \"topic_name\": \"$TOPIC\",
+                \"wed_lesson_plan_url\": \"$WED_URL\",
+                \"thu_lesson_plan_url\": \"$THU_URL\",
+                \"wed_sheet_names\": $(echo $WED_SHEETS | jq -c '.'),
+                \"thu_sheet_names\": $(echo $THU_SHEETS | jq -c '.'),
+                \"deepseek_intro_week\": $DEEPSEEK_FLAG,
+                \"streamlit_week\": $STREAMLIT_FLAG,
+                \"status\": \"published\"
+              }"
+          else
+            echo "📝 Updating NocoDB record $RECORD_ID..."
+            curl -s -X PATCH "https://nocodb.aiautom8or.com/api/v2/tables/${{ secrets.NOCODB_WEEKLY_TABLE_ID }}/records" \
+              -H "xc-token: $NOCODB_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"records\": [{
+                  \"Id\": $RECORD_ID,
+                  \"week_number\": $WEEK,
+                  \"phase\": \"phase-2a-python\",
+                  \"topic_name\": \"$TOPIC\",
+                  \"wed_lesson_plan_url\": \"$WED_URL\",
+                  \"thu_lesson_plan_url\": \"$THU_URL\",
+                  \"wed_sheet_names\": $(echo $WED_SHEETS | jq -c '.'),
+                  \"thu_sheet_names\": $(echo $THU_SHEETS | jq -c '.'),
+                  \"deepseek_intro_week\": $DEEPSEEK_FLAG,
+                  \"streamlit_week\": $STREAMLIT_FLAG,
+                  \"status\": \"published\"
+                }]
+              }"
+          fi
+          echo "✅ NocoDB updated"
+
+      # ── PR Closed (not merged) ─────────────────────────────────
       - name: PR Closed (not merged)
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == false
         shell: bash
@@ -83,22 +169,6 @@ jobs:
           **Title:** ${{ github.event.pull_request.title }}
 
           This PR was closed without merging. Run the generation pipeline again to create a new PR.'
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
-            -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
-            -d "parse_mode=Markdown" \
-            --data-urlencode "text=$MSG"
-
-      - name: Rework Comment Detected
-        if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '/rework')
-        shell: bash
-        run: |
-          MSG='🔄 **Rework Requested — PR #${{ github.event.issue.number }}**
-
-          **Comment by:** ${{ github.event.comment.user.login }}
-          **PR:** ${{ github.event.issue.html_url }}
-
-          > ${{ github.event.comment.body }}'
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
             -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
