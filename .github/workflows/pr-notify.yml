@@ -11,7 +11,7 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    # Only run for PR comments on PRs whose head branch starts with "content/week-"
+    # Only run for content PRs or comments on content PRs
     if: |
       (github.event_name == 'pull_request' && startsWith(github.event.pull_request.head.ref, 'content/week-')) ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request != null && github.event.issue.pull_request.merged_at == null)
@@ -19,118 +19,88 @@ jobs:
     steps:
       - name: PR Opened or Updated
         if: github.event_name == 'pull_request' && github.event.action != 'closed'
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message_thread_id: ${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}
-          format: markdown
-          message: |
-            📬 **PR ${{ github.event.action == 'opened' && 'Created' || 'Updated' }} — Phase 2a Python**
+        shell: bash
+        run: |
+          MSG='📬 **PR ${{ github.event.action == 'opened' && 'Created' || 'Updated' }} — Phase 2a Python**
 
-            **PR:** #${{ github.event.pull_request.number }}
-            **Title:** ${{ github.event.pull_request.title }}
-            **Branch:** `${{ github.event.pull_request.head.ref }}`
+          **PR:** #${{ github.event.pull_request.number }}
+          **Title:** ${{ github.event.pull_request.title }}
+          **Branch:** `${{ github.event.pull_request.head.ref }}`
 
-            🔗 ${{ github.event.pull_request.html_url }}
+          🔗 ${{ github.event.pull_request.html_url }}
 
-            **Actions:**
-            • Merge to publish content
-            • Comment `/rework` to request changes
-            • Close to cancel
+          **Actions:**
+          • Merge to publish content
+          • Comment `/rework` to request changes
+          • Close to cancel'
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
+            -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=$MSG"
 
       - name: PR Merged → Notify Facilitators
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_GROUP_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          format: markdown
-          message: |
-            🎉 **Phase 2a Python — Content Published!**
+        shell: bash
+        run: |
+          MSG='🎉 **Phase 2a Python — Content Published!**
 
-            **PR:** #${{ github.event.pull_request.number }}
-            **Title:** ${{ github.event.pull_request.title }}
-            **Merged by:** ${{ github.event.pull_request.merged_by.login }}
+          **PR:** #${{ github.event.pull_request.number }}
+          **Title:** ${{ github.event.pull_request.title }}
+          **Merged by:** ${{ github.event.pull_request.merged_by.login }}
 
-            ✅ Content is now live for students on GitHub.
-            📂 Solutions available on Google Drive.
-            📊 NocoDB schedule updated.
+          ✅ Content is now live for students on GitHub.
+          📂 Solutions available on Google Drive.'
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_GROUP_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=$MSG"
 
       - name: PR Merged → Update NocoDB
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
-        env:
-          NOCODB_TOKEN: ${{ secrets.NOCODB_API_TOKEN }}
+        shell: bash
         run: |
-          # Extract week number and topic from PR title: "Phase 2a Python — Week N: Topic"
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          WEEK_NUM=$(echo "$PR_TITLE" | grep -oP 'Week \K\d+' || echo "0")
-          TOPIC=$(echo "$PR_TITLE" | grep -oP '— Week \d+: \K.*' || echo "$PR_TITLE")
-          echo "Week: $WEEK_NUM — Topic: $TOPIC"
-
-          # Determine flags
-          DEEPSEEK_INTRO=false
-          STREAMLIT_WEEK=false
-          [ "$WEEK_NUM" = "4" ] && DEEPSEEK_INTRO=true
-          [ "$WEEK_NUM" = "8" ] && STREAMLIT_WEEK=true
-
-          # Build slug from week number
-          WEEK_SLUG=$(printf "week-%02d" $WEEK_NUM)
-          case $WEEK_NUM in
-            1) SLUG="$WEEK_SLUG-python-fundamentals" ;;
-            2) SLUG="$WEEK_SLUG-collections-and-control-flow" ;;
-            3) SLUG="$WEEK_SLUG-functions-and-data" ;;
-            4) SLUG="$WEEK_SLUG-pandas-introduction" ;;
-            5) SLUG="$WEEK_SLUG-groupby-and-aggregation" ;;
-            6) SLUG="$WEEK_SLUG-data-cleaning" ;;
-            7) SLUG="$WEEK_SLUG-merging-dataframes" ;;
-            8) SLUG="$WEEK_SLUG-visualisation-and-streamlit" ;;
-            *) SLUG="$WEEK_SLUG-unknown" ;;
-          esac
-
-          # POST to NocoDB
-          curl -s -X POST "https://nocodb.aiautom8or.com/api/v2/db/data/noco/pora-academy/phase2a_schedule" \
-            -H "xc-token: $NOCODB_TOKEN" \
+          curl -s -X PATCH "https://nocodb.aiautom8or.com/api/v2/tables/${{ secrets.NOCODB_WEEKLY_TABLE_ID }}/records" \
+            -H "xc-token: ${{ secrets.NOCODB_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"week_number\": $WEEK_NUM,
-              \"phase\": \"phase-2a-python\",
-              \"topic_name\": \"$TOPIC\",
-              \"wed_lesson_plan_url\": \"https://raw.githubusercontent.com/autom8or-com/data-analysis-and-ai-automation-course-cohort-7/main/curriculum/phase-2a-python/weeks-01-08-teaching/$SLUG/01-wednesday/lesson-plan.md\",
-              \"thu_lesson_plan_url\": \"https://raw.githubusercontent.com/autom8or-com/data-analysis-and-ai-automation-course-cohort-7/main/curriculum/phase-2a-python/weeks-01-08-teaching/$SLUG/02-thursday/lesson-plan.md\",
-              \"deepseek_intro_week\": $DEEPSEEK_INTRO,
-              \"streamlit_week\": $STREAMLIT_WEEK,
-              \"status\": \"published\"
-            }"
+            -d "$(cat <<EOF
+          {
+            "records": [{
+              "Id": "${{ secrets.NOCODB_WEEK_2_RECORD_ID }}",
+              "status": "published"
+            }]
+          }
+          EOF
+          )"
 
       - name: PR Closed (not merged)
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == false
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message_thread_id: ${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}
-          format: markdown
-          message: |
-            ❌ **PR Closed — Not Merged**
+        shell: bash
+        run: |
+          MSG='❌ **PR Closed — Not Merged**
 
-            **PR:** #${{ github.event.pull_request.number }}
-            **Title:** ${{ github.event.pull_request.title }}
+          **PR:** #${{ github.event.pull_request.number }}
+          **Title:** ${{ github.event.pull_request.title }}
 
-            This PR was closed without merging. Run the generation pipeline again to create a new PR.
+          This PR was closed without merging. Run the generation pipeline again to create a new PR.'
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
+            -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=$MSG"
 
       - name: Rework Comment Detected
         if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '/rework')
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message_thread_id: ${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}
-          format: markdown
-          message: |
-            🔄 **Rework Requested — PR #${{ github.event.issue.number }}**
+        shell: bash
+        run: |
+          MSG='🔄 **Rework Requested — PR #${{ github.event.issue.number }}**
 
-            **Comment by:** ${{ github.event.comment.user.login }}
-            **PR:** ${{ github.event.issue.html_url }}
+          **Comment by:** ${{ github.event.comment.user.login }}
+          **PR:** ${{ github.event.issue.html_url }}
 
-            > ${{ github.event.comment.body }}
+          > ${{ github.event.comment.body }}'
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
+            -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=$MSG"
