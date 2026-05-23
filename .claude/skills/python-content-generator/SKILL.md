@@ -86,7 +86,9 @@ Boilerplate content for notebooks and lessons:
 
 ---
 
-## The 15-Step Workflow
+## The 14-Step Workflow (with Post-Merge Publishing)
+
+### Generation Phase (runs on cron, produces PR)
 
 1. **Parse request** → Validate week number, get topic name
 2. **Create git branch** → `git checkout -b content/week-slug`
@@ -98,11 +100,19 @@ Boilerplate content for notebooks and lessons:
 8. **Populate resources** → Week 1 only: cheatsheets, schema reference
 9. **Remove .gitkeep** → Clean up placeholder files from scaffolding
 10. **Update .gitignore** → Switch from whole-folder hide to solutions-only hide
-11. **Commit to branch** → `git commit -m "Add Week N content:..."`
-12. **Upload to Google Drive** → Solutions notebooks to gws Drive folder
-13. **Update NocoDB** → weekly_schedule table with lesson plan URLs
-14. **Send Telegram alert** → Notify facilitators with Bible quote
-15. **Report summary** → Print branch name, file count, next steps
+11. **Commit, push, create PR + notify reviewer**
+    - `git commit -m "Add Week N content:..."`
+    - `git push -u origin content/week-NN-slug`
+    - Creates PR via GitHub API → `Telegram Content Pipeline topic` 📬
+12. **Upload solutions to Google Drive** → Solutions notebooks via rclone (happens pre-merge because solutions are gitignored — Drive is the only permanent storage)
+13. **Send pipeline status** → `Telegram Content Pipeline topic` ⚙️ "Pipeline complete, waiting for review"
+14. **Report summary** → Print branch name, file count, next steps
+
+### Publishing Phase (GitHub Actions, fires on PR merge)
+
+- `pr-notify.yml` triggers on `pull_request` closed + merged
+- **Telegram to facilitators** 🎉 "Content Published!"
+- **NocoDB update** 📊 weekly_schedule → `status: "published"` (only after approval)
 
 ---
 
