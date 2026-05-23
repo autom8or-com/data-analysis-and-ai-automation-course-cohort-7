@@ -55,6 +55,7 @@ jobs:
 
             ✅ Content is now live for students on GitHub.
             📂 Solutions available on Google Drive.
+            📊 NocoDB schedule updated.
 
       - name: PR Merged → Update NocoDB
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
