@@ -56,6 +56,52 @@ jobs:
             ✅ Content is now live for students on GitHub.
             📂 Solutions available on Google Drive.
 
+      - name: PR Merged → Update NocoDB
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        env:
+          NOCODB_TOKEN: ${{ secrets.NOCODB_API_TOKEN }}
+        run: |
+          # Extract week number and topic from PR title: "Phase 2a Python — Week N: Topic"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          WEEK_NUM=$(echo "$PR_TITLE" | grep -oP 'Week \K\d+' || echo "0")
+          TOPIC=$(echo "$PR_TITLE" | grep -oP '— Week \d+: \K.*' || echo "$PR_TITLE")
+          echo "Week: $WEEK_NUM — Topic: $TOPIC"
+
+          # Determine flags
+          DEEPSEEK_INTRO=false
+          STREAMLIT_WEEK=false
+          [ "$WEEK_NUM" = "4" ] && DEEPSEEK_INTRO=true
+          [ "$WEEK_NUM" = "8" ] && STREAMLIT_WEEK=true
+
+          # Build slug from week number
+          WEEK_SLUG=$(printf "week-%02d" $WEEK_NUM)
+          case $WEEK_NUM in
+            1) SLUG="$WEEK_SLUG-python-fundamentals" ;;
+            2) SLUG="$WEEK_SLUG-collections-and-control-flow" ;;
+            3) SLUG="$WEEK_SLUG-functions-and-data" ;;
+            4) SLUG="$WEEK_SLUG-pandas-introduction" ;;
+            5) SLUG="$WEEK_SLUG-groupby-and-aggregation" ;;
+            6) SLUG="$WEEK_SLUG-data-cleaning" ;;
+            7) SLUG="$WEEK_SLUG-merging-dataframes" ;;
+            8) SLUG="$WEEK_SLUG-visualisation-and-streamlit" ;;
+            *) SLUG="$WEEK_SLUG-unknown" ;;
+          esac
+
+          # POST to NocoDB
+          curl -s -X POST "https://nocodb.aiautom8or.com/api/v2/db/data/noco/pora-academy/phase2a_schedule" \
+            -H "xc-token: $NOCODB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"week_number\": $WEEK_NUM,
+              \"phase\": \"phase-2a-python\",
+              \"topic_name\": \"$TOPIC\",
+              \"wed_lesson_plan_url\": \"https://raw.githubusercontent.com/autom8or-com/data-analysis-and-ai-automation-course-cohort-7/main/curriculum/phase-2a-python/weeks-01-08-teaching/$SLUG/01-wednesday/lesson-plan.md\",
+              \"thu_lesson_plan_url\": \"https://raw.githubusercontent.com/autom8or-com/data-analysis-and-ai-automation-course-cohort-7/main/curriculum/phase-2a-python/weeks-01-08-teaching/$SLUG/02-thursday/lesson-plan.md\",
+              \"deepseek_intro_week\": $DEEPSEEK_INTRO,
+              \"streamlit_week\": $STREAMLIT_WEEK,
+              \"status\": \"published\"
+            }"
+
       - name: PR Closed (not merged)
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == false
         uses: appleboy/telegram-action@master
