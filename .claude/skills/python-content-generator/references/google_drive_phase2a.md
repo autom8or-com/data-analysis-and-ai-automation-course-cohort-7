@@ -34,6 +34,22 @@ Week N - [Topic]
 
 ---
 
+## Timing: Drive Upload Happens Pre-Merge
+
+**Step 12 (Drive upload) runs during generation, BEFORE the PR is merged.**
+
+This is by design:
+- Solutions notebooks are **gitignored** — they are never committed to git
+- Drive is the only permanent storage for solutions
+- Solutions need to be on Drive *before* content goes live, so instructors have the answer key ready
+- The reviewer can verify solutions on Drive during PR review
+
+If content is reworked, the solutions are re-uploaded (overwrite).
+
+**Known limitation:** The service account may hit Drive storage quota errors (403). Solutions remain available locally as fallback.
+
+---
+
 ## rclone Setup (one-time per machine)
 
 Drive uploads use **rclone with a service account** — no OAuth browser flow, no token expiry.
