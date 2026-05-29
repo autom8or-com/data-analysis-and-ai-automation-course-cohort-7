@@ -67,7 +67,6 @@ jobs:
           ACTOR="${{ github.event.comment.user.login }}"
           BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName --jq '.headRefName')
 
-          # Extract reason (everything after '/reject' on the same line)
           REASON=$(echo "${{ github.event.comment.body }}" \
             | grep -o '/reject.*' \
             | sed 's|/reject[[:space:]]*||' \
@@ -76,29 +75,14 @@ jobs:
 
           echo "Rejecting PR #${PR_NUMBER} on branch ${BRANCH}. Reason: ${REASON}"
 
-          # Close the PR with a comment
-          gh pr close "$PR_NUMBER" \
-            --comment "❌ **Rejected** by @${ACTOR}
+          CLOSE_COMMENT=$'❌ **Rejected** by @'"${ACTOR}"$'\n\n**Reason:** '"${REASON}"$'\n\nThe branch `'"${BRANCH}"$'` has been deleted. Run the pipeline again to regenerate this week'"'"'s content.'
+          gh pr close "$PR_NUMBER" --comment "$CLOSE_COMMENT"
 
-**Reason:** ${REASON}
-
-The branch \`${BRANCH}\` has been deleted. Run the pipeline again to regenerate this week's content."
-
-          # Delete the branch
           git push origin --delete "$BRANCH" \
             && echo "Branch ${BRANCH} deleted" \
             || echo "Branch ${BRANCH} already deleted or not found"
 
-          # Notify via Telegram
-          MSG="❌ *PR Rejected — Phase 2a Python*
-
-*PR:* #${PR_NUMBER}
-*Branch:* \`${BRANCH}\`
-*Rejected by:* @${ACTOR}
-*Reason:* ${REASON}
-
-Branch deleted. Run /python-content-generator to regenerate."
-
+          MSG=$'❌ *PR Rejected — Phase 2a Python*\n\n*PR:* #'"${PR_NUMBER}"$'\n*Branch:* `'"${BRANCH}"$'`\n*Rejected by:* @'"${ACTOR}"$'\n*Reason:* '"${REASON}"$'\n\nBranch deleted. Run /python-content-generator to regenerate.'
           curl -s -X POST \
             "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
@@ -120,7 +104,6 @@ Branch deleted. Run /python-content-generator to regenerate."
           BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName --jq '.headRefName')
           TITLE=$(gh pr view "$PR_NUMBER" --json title --jq '.title')
 
-          # Extract everything after '/rework' as the instructions
           INSTRUCTIONS=$(echo "${{ github.event.comment.body }}" \
             | grep -o '/rework.*' \
             | sed 's|/rework[[:space:]]*||' \
@@ -129,18 +112,8 @@ Branch deleted. Run /python-content-generator to regenerate."
 
           echo "Dispatching /rework for PR #${PR_NUMBER} (${BRANCH}) to Claude Routine..."
 
-          # Build context payload for the Routine
-          TEXT="/rework trigger from PR #${PR_NUMBER}
+          TEXT=$'/rework trigger from PR #'"${PR_NUMBER}"$'\n\nPR: #'"${PR_NUMBER}"$'\nBranch: '"${BRANCH}"$'\nTitle: '"${TITLE}"$'\nReviewer: @'"${ACTOR}"$'\n\nRework instructions:\n'"${INSTRUCTIONS}"
 
-PR: #${PR_NUMBER}
-Branch: ${BRANCH}
-Title: ${TITLE}
-Reviewer: @${ACTOR}
-
-Rework instructions:
-${INSTRUCTIONS}"
-
-          # Fire the Content Rework Claude Routine via its API trigger
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.REWORK_ROUTINE_URL }}" \
             -H "Authorization: Bearer ${{ secrets.REWORK_ROUTINE_TOKEN }}" \
             -H "anthropic-beta: experimental-cc-routine-2026-04-01" \
@@ -153,21 +126,11 @@ ${INSTRUCTIONS}"
 
           if [ "$HTTP_CODE" = "200" ]; then
             SESSION_URL=$(echo "$BODY" | jq -r '.claude_code_session_url // empty')
-            gh pr comment "$PR_NUMBER" \
-              --body "🔧 **Rework triggered** by @${ACTOR}
 
-Claude is applying your feedback now. [Watch the session](${SESSION_URL})
+            REWORK_COMMENT=$'🔧 **Rework triggered** by @'"${ACTOR}"$'\n\nClaude is applying your feedback now. [Watch the session]('"${SESSION_URL}"$')\n\nFeedback: *'"${INSTRUCTIONS}"$'*'
+            gh pr comment "$PR_NUMBER" --body "$REWORK_COMMENT"
 
-Feedback: *${INSTRUCTIONS}*"
-
-            # Notify reviewer group
-            MSG="🔧 *Rework In Progress — Phase 2a Python*
-
-*PR:* #${PR_NUMBER} — ${TITLE}
-*Triggered by:* @${ACTOR}
-*Feedback:* ${INSTRUCTIONS}
-
-Claude is applying the rework now. The PR will update automatically when done."
+            MSG=$'🔧 *Rework In Progress — Phase 2a Python*\n\n*PR:* #'"${PR_NUMBER}"$' — '"${TITLE}"$'\n*Triggered by:* @'"${ACTOR}"$'\n*Feedback:* '"${INSTRUCTIONS}"$'\n\nClaude is applying the rework now. The PR will update automatically when done.'
             curl -s -X POST \
               "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
               -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
