@@ -1,0 +1,169 @@
+name: PR Commands — Phase 2a Content Review
+
+# Handles /approve, /reject, /rework comments on Phase 2a content PRs.
+# /approve  — squash merge + delete branch (pure bash)
+# /reject   — close PR + delete branch + Telegram (pure bash)
+# /rework   — calls the "Phase 2a Python — Content Rework" Claude Routine via
+#             its API trigger endpoint. The Routine runs on Anthropic cloud and
+#             applies targeted notebook improvements based on the reviewer's notes.
+#             Requires REWORK_ROUTINE_URL and REWORK_ROUTINE_TOKEN secrets.
+#             (GitHub event triggers in Routines do not support issue_comment events;
+#              the API trigger pattern is the correct approach.)
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  handle-command:
+    if: |
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.issue.title, 'Phase 2a Python') &&
+      (
+        contains(github.event.comment.body, '/approve') ||
+        contains(github.event.comment.body, '/reject') ||
+        contains(github.event.comment.body, '/rework')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    env:
+      GH_TOKEN: ${{ secrets.CONTENT_PIPELINE_PAT }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CONTENT_PIPELINE_PAT }}
+
+      # ── /approve — squash merge and delete branch ─────────────
+      - name: Handle /approve
+        if: contains(github.event.comment.body, '/approve')
+        shell: bash
+        run: |
+          PR_NUMBER="${{ github.event.issue.number }}"
+          ACTOR="${{ github.event.comment.user.login }}"
+          TITLE=$(gh pr view "$PR_NUMBER" --json title --jq '.title')
+
+          echo "Approving PR #${PR_NUMBER}: ${TITLE}"
+
+          gh pr merge "$PR_NUMBER" \
+            --squash \
+            --delete-branch \
+            --subject "${TITLE}"
+
+          echo "✅ PR #${PR_NUMBER} merged and branch deleted by ${ACTOR}"
+
+      # ── /reject — close PR + delete branch + Telegram ─────────
+      - name: Handle /reject
+        if: contains(github.event.comment.body, '/reject')
+        shell: bash
+        run: |
+          PR_NUMBER="${{ github.event.issue.number }}"
+          ACTOR="${{ github.event.comment.user.login }}"
+          BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName --jq '.headRefName')
+
+          REASON=$(echo "${{ github.event.comment.body }}" \
+            | grep -o '/reject.*' \
+            | sed 's|/reject[[:space:]]*||' \
+            | head -1)
+          REASON="${REASON:-No reason given}"
+
+          echo "Rejecting PR #${PR_NUMBER} on branch ${BRANCH}. Reason: ${REASON}"
+
+          CLOSE_COMMENT=$'❌ **Rejected** by @'"${ACTOR}"$'\n\n**Reason:** '"${REASON}"$'\n\nThe branch `'"${BRANCH}"$'` has been deleted. Run the pipeline again to regenerate this week'"'"'s content.'
+          gh pr close "$PR_NUMBER" --comment "$CLOSE_COMMENT"
+
+          git push origin --delete "$BRANCH" \
+            && echo "Branch ${BRANCH} deleted" \
+            || echo "Branch ${BRANCH} already deleted or not found"
+
+          MSG=$'❌ *PR Rejected — Phase 2a Python*\n\n*PR:* #'"${PR_NUMBER}"$'\n*Branch:* `'"${BRANCH}"$'`\n*Rejected by:* @'"${ACTOR}"$'\n*Reason:* '"${REASON}"$'\n\nBranch deleted. Run /python-content-generator to regenerate.'
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
+            -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=${MSG}" \
+            || echo "Telegram notification failed (non-blocking)"
+
+      # ── /rework — call Claude Routine API endpoint ────────────
+      - name: Handle /rework
+        if: |
+          contains(github.event.comment.body, '/rework') &&
+          !contains(github.event.comment.body, '/approve') &&
+          !contains(github.event.comment.body, '/reject')
+        shell: bash
+        run: |
+          PR_NUMBER="${{ github.event.issue.number }}"
+          ACTOR="${{ github.event.comment.user.login }}"
+          BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName --jq '.headRefName')
+          TITLE=$(gh pr view "$PR_NUMBER" --json title --jq '.title')
+
+          INSTRUCTIONS=$(echo "${{ github.event.comment.body }}" \
+            | grep -o '/rework.*' \
+            | sed 's|/rework[[:space:]]*||' \
+            | head -1)
+          INSTRUCTIONS="${INSTRUCTIONS:-No specific instructions provided — apply general quality improvements}"
+
+          echo "Dispatching /rework for PR #${PR_NUMBER} (${BRANCH}) to Claude Routine..."
+
+          TEXT=$'/rework trigger from PR #'"${PR_NUMBER}"$'\n\nPR: #'"${PR_NUMBER}"$'\nBranch: '"${BRANCH}"$'\nTitle: '"${TITLE}"$'\nReviewer: @'"${ACTOR}"$'\n\nRework instructions:\n'"${INSTRUCTIONS}"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.REWORK_ROUTINE_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.REWORK_ROUTINE_TOKEN }}" \
+            -H "anthropic-beta: experimental-cc-routine-2026-04-01" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": $(echo "$TEXT" | jq -Rs .)}")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            SESSION_URL=$(echo "$BODY" | jq -r '.claude_code_session_url // empty')
+
+            REWORK_COMMENT=$'🔧 **Rework triggered** by @'"${ACTOR}"$'\n\nClaude is applying your feedback now. [Watch the session]('"${SESSION_URL}"$')\n\nFeedback: *'"${INSTRUCTIONS}"$'*'
+            gh pr comment "$PR_NUMBER" --body "$REWORK_COMMENT"
+
+            MSG=$'🔧 *Rework In Progress — Phase 2a Python*\n\n*PR:* #'"${PR_NUMBER}"$' — '"${TITLE}"$'\n*Triggered by:* @'"${ACTOR}"$'\n*Feedback:* '"${INSTRUCTIONS}"$'\n\nClaude is applying the rework now. The PR will update automatically when done.'
+            curl -s -X POST \
+              "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+              -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
+              -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
+              -d "parse_mode=Markdown" \
+              --data-urlencode "text=${MSG}" \
+              || echo "Telegram notification failed (non-blocking)"
+
+            echo "✅ Rework routine fired. Session: ${SESSION_URL}"
+          else
+            echo "⚠ Routine API call failed (HTTP ${HTTP_CODE}): ${BODY}"
+            gh pr comment "$PR_NUMBER" \
+              --body "⚠️ **Rework trigger failed** (HTTP ${HTTP_CODE}) — check the \`REWORK_ROUTINE_URL\` and \`REWORK_ROUTINE_TOKEN\` secrets, or run \`/python-content-generator\` manually on the branch \`${BRANCH}\`."
+          fi
+
+      # ── Acknowledge with emoji reaction ───────────────────────
+      - name: React to command comment
+        if: always()
+        shell: bash
+        run: |
+          COMMENT_ID="${{ github.event.comment.id }}"
+          BODY="${{ github.event.comment.body }}"
+
+          if echo "$BODY" | grep -q '/approve'; then
+            EMOJI="rocket"
+          elif echo "$BODY" | grep -q '/rework'; then
+            EMOJI="wrench"
+          else
+            EMOJI="x"
+          fi
+
+          gh api \
+            "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}/reactions" \
+            -X POST \
+            -f "content=${EMOJI}" \
+            || true

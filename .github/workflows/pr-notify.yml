@@ -11,23 +11,21 @@ jobs:
     if: startsWith(github.event.pull_request.head.ref, 'content/week-')
 
     steps:
-      # ── PR Opened or Updated ──────────────────────────────────
-      - name: PR Opened or Updated
-        if: github.event_name == 'pull_request' && github.event.action != 'closed'
+      # ── PR Updated (push to existing PR branch) ──────────────
+      # PR creation notification is handled by /python-week-publish skill Step P8
+      # (richer message with topic, programme week, Drive confirmation).
+      # This step handles only subsequent pushes to the branch (e.g. after /rework).
+      - name: PR Updated
+        if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
         shell: bash
         run: |
-          MSG='📬 **PR ${{ github.event.action == 'opened' && 'Created' || 'Updated' }} — Phase 2a Python**
+          MSG='🔄 **PR Updated — Phase 2a Python**
 
           **PR:** #${{ github.event.pull_request.number }}
           **Title:** ${{ github.event.pull_request.title }}
           **Branch:** `${{ github.event.pull_request.head.ref }}`
 
-          🔗 ${{ github.event.pull_request.html_url }}
-
-          **Actions:**
-          • Comment `/approve` to merge and publish
-          • Comment `/rework` to request changes
-          • Close to cancel'
+          🔗 ${{ github.event.pull_request.html_url }}'
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
             -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
@@ -85,10 +83,17 @@ jobs:
         env:
           NOCODB_TOKEN: ${{ secrets.NOCODB_API_TOKEN }}
         run: |
-          # Parse week number from branch name
+          # Parse phase-level week number from branch name (1–8)
           BRANCH="${{ github.event.pull_request.head.ref }}"
           WEEK=$(echo "$BRANCH" | sed -E 's/.*week-0*([0-9]+).*/\1/')
           TOPIC=$(echo "${{ github.event.pull_request.title }}" | sed -E 's/^Phase 2a Python — Week [0-9]+: //')
+
+          # Calculate programme-level week number (Excel = weeks 1–8, Python starts at 9)
+          # PHASE_2A_WEEK_OFFSET is stored as a GitHub Actions variable (vars.PHASE_2A_WEEK_OFFSET)
+          OFFSET="${{ vars.PHASE_2A_WEEK_OFFSET }}"
+          # Default: Excel = 6 teaching + 2 project + 1 break = 9 weeks before Python
+          OFFSET="${OFFSET:-9}"
+          PROGRAMME_WEEK=$((WEEK + OFFSET))
 
           # Build notebook sheet name JSONs (nocoDB phase2a_schedule schema)
           WED_SHEETS=$(ls curriculum/phase-2a-python/weeks-01-08-teaching/week-$(printf "%02d" $WEEK)-*/01-wednesday/lecture-materials/*.ipynb 2>/dev/null | xargs -n1 basename | jq -R -s -c 'split("\n")[:-1]')
@@ -112,65 +117,53 @@ jobs:
           WED_URL="https://raw.githubusercontent.com/autom8or-com/data-analysis-and-ai-automation-course-cohort-7/main/curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/01-wednesday/lesson-plan.md"
           THU_URL="https://raw.githubusercontent.com/autom8or-com/data-analysis-and-ai-automation-course-cohort-7/main/curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/02-thursday/lesson-plan.md"
 
-          # Find the record by week_number
-          echo "🔍 Looking up NocoDB record for Week $WEEK..."
-          RECORD_ID=$(curl -s "https://nocodb.aiautom8or.com/api/v2/tables/${{ secrets.NOCODB_WEEKLY_TABLE_ID }}/records?where=(week_number,eq,${WEEK})" \
+          # Find the record by programme_week_number (the global row across all phases)
+          echo "🔍 Looking up NocoDB record for Programme Week $PROGRAMME_WEEK (Phase 2a Week $WEEK)..."
+          RECORD_ID=$(curl -s "https://nocodb.aiautom8or.com/api/v2/tables/${{ secrets.NOCODB_WEEKLY_TABLE_ID }}/records?where=(programme_week_number,eq,${PROGRAMME_WEEK})" \
             -H "xc-token: $NOCODB_TOKEN" \
             | jq -r '.list[0].Id // empty')
 
+          PAYLOAD="{
+            \"programme_week_number\": $PROGRAMME_WEEK,
+            \"phase_week_number\": $WEEK,
+            \"phase\": \"phase-2a-python\",
+            \"topic_name\": \"$TOPIC\",
+            \"wed_lesson_plan_url\": \"$WED_URL\",
+            \"thu_lesson_plan_url\": \"$THU_URL\",
+            \"wed_sheet_names\": $(echo $WED_SHEETS | jq -c '.'),
+            \"thu_sheet_names\": $(echo $THU_SHEETS | jq -c '.'),
+            \"deepseek_intro_week\": $DEEPSEEK_FLAG,
+            \"streamlit_week\": $STREAMLIT_FLAG,
+            \"status\": \"published\"
+          }"
+
           if [ -z "$RECORD_ID" ]; then
-            echo "⚠ No NocoDB record found for Week $WEEK — creating one"
+            echo "⚠ No NocoDB record found for Programme Week $PROGRAMME_WEEK — creating one"
             curl -s -X POST "https://nocodb.aiautom8or.com/api/v2/tables/${{ secrets.NOCODB_WEEKLY_TABLE_ID }}/records" \
               -H "xc-token: $NOCODB_TOKEN" \
               -H "Content-Type: application/json" \
-              -d "{
-                \"week_number\": $WEEK,
-                \"phase\": \"phase-2a-python\",
-                \"topic_name\": \"$TOPIC\",
-                \"wed_lesson_plan_url\": \"$WED_URL\",
-                \"thu_lesson_plan_url\": \"$THU_URL\",
-                \"wed_sheet_names\": $(echo $WED_SHEETS | jq -c '.'),
-                \"thu_sheet_names\": $(echo $THU_SHEETS | jq -c '.'),
-                \"deepseek_intro_week\": $DEEPSEEK_FLAG,
-                \"streamlit_week\": $STREAMLIT_FLAG,
-                \"status\": \"published\"
-              }"
+              -d "$PAYLOAD"
           else
-            echo "📝 Updating NocoDB record $RECORD_ID..."
+            echo "📝 Updating NocoDB record $RECORD_ID (Programme Week $PROGRAMME_WEEK)..."
             curl -s -X PATCH "https://nocodb.aiautom8or.com/api/v2/tables/${{ secrets.NOCODB_WEEKLY_TABLE_ID }}/records" \
               -H "xc-token: $NOCODB_TOKEN" \
               -H "Content-Type: application/json" \
-              -d "{
-                \"records\": [{
-                  \"Id\": $RECORD_ID,
-                  \"week_number\": $WEEK,
-                  \"phase\": \"phase-2a-python\",
-                  \"topic_name\": \"$TOPIC\",
-                  \"wed_lesson_plan_url\": \"$WED_URL\",
-                  \"thu_lesson_plan_url\": \"$THU_URL\",
-                  \"wed_sheet_names\": $(echo $WED_SHEETS | jq -c '.'),
-                  \"thu_sheet_names\": $(echo $THU_SHEETS | jq -c '.'),
-                  \"deepseek_intro_week\": $DEEPSEEK_FLAG,
-                  \"streamlit_week\": $STREAMLIT_FLAG,
-                  \"status\": \"published\"
-                }]
-              }"
+              -d "{\"records\": [{\"Id\": $RECORD_ID, $(echo $PAYLOAD | sed 's/^{//')"
           fi
-          echo "✅ NocoDB updated"
+          echo "✅ NocoDB updated — Programme Week $PROGRAMME_WEEK (Phase 2a Week $WEEK: $TOPIC)"
 
-      # ── PR Closed (not merged) ─────────────────────────────────
-      - name: PR Closed (not merged)
+      # ── PR Closed (not merged) — Delete branch + notify ──────────
+      - name: PR Closed (not merged) — Delete branch
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == false
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.CONTENT_PIPELINE_PAT }}
         run: |
-          MSG='❌ **PR Closed — Not Merged**
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          git push origin --delete "$BRANCH" \
+            && echo "Branch ${BRANCH} deleted" \
+            || echo "Branch ${BRANCH} already deleted or protected"
 
-          **PR:** #${{ github.event.pull_request.number }}
-          **Title:** ${{ github.event.pull_request.title }}
-
-          This PR was closed without merging. Run the generation pipeline again to create a new PR.'
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
-            -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
-            -d "parse_mode=Markdown" \
-            --data-urlencode "text=$MSG"
+      # ── PR Closed (not merged) — notification handled by pr-commands.yml /reject
+      # which sends a richer message including the rejection reason and actor.
+      # No duplicate Telegram here.
