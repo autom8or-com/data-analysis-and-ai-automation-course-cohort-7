@@ -210,7 +210,8 @@ if [ "$NEEDS_REVIEW" -gt 0 ]; then
 fi
 
 # Programme-level week number
-OFFSET="${PHASE_2A_WEEK_OFFSET:-8}"
+# Excel: 6 teaching + 2 project + 1 break = 9 weeks before Python starts
+OFFSET="${PHASE_2A_WEEK_OFFSET:-9}"
 PROGRAMME_WEEK=$((WEEK + OFFSET))
 
 gh pr create \
@@ -277,7 +278,8 @@ WEEK_NUM=$(printf "%02d" $WEEK)
 PR_URL=$(python3 -c "import json; s=json.load(open('.claude/cache/week-${WEEK_NUM}-generation-state.json')); print(s['publishing']['pr_url'])")
 
 # Programme-level week number: read PHASE_2A_WEEK_OFFSET from env (default 8)
-OFFSET="${PHASE_2A_WEEK_OFFSET:-8}"
+# Excel: 6 teaching + 2 project + 1 break = 9 weeks before Python starts
+OFFSET="${PHASE_2A_WEEK_OFFSET:-9}"
 PROGRAMME_WEEK=$((WEEK + OFFSET))
 
 MSG="📬 *Phase 2a Python — Week ${WEEK} (Programme Week ${PROGRAMME_WEEK}) PR Ready*

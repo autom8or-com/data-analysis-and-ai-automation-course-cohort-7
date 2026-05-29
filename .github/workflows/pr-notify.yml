@@ -93,7 +93,8 @@ jobs:
           # Calculate programme-level week number (Excel = weeks 1–8, Python starts at 9)
           # PHASE_2A_WEEK_OFFSET is stored as a GitHub Actions variable (vars.PHASE_2A_WEEK_OFFSET)
           OFFSET="${{ vars.PHASE_2A_WEEK_OFFSET }}"
-          OFFSET="${OFFSET:-8}"   # default to 8 if variable not set
+          # Default: Excel = 6 teaching + 2 project + 1 break = 9 weeks before Python
+          OFFSET="${OFFSET:-9}"
           PROGRAMME_WEEK=$((WEEK + OFFSET))
 
           # Build notebook sheet name JSONs (nocoDB phase2a_schedule schema)
