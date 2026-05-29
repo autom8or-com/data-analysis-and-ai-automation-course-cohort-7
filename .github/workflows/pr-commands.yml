@@ -1,0 +1,122 @@
+name: PR Commands — Phase 2a Content Review
+
+# Handles /approve, /reject comments on Phase 2a content PRs.
+# /rework is handled by the "Phase 2a Python — Content Rework" Claude Routine,
+# which fires on PR comment events and uses Claude to apply targeted improvements.
+# This workflow uses pure bash — no Claude API calls required.
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  handle-command:
+    if: |
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.issue.title, 'Phase 2a Python') &&
+      (
+        contains(github.event.comment.body, '/approve') ||
+        contains(github.event.comment.body, '/reject')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    env:
+      GH_TOKEN: ${{ secrets.CONTENT_PIPELINE_PAT }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CONTENT_PIPELINE_PAT }}
+
+      # ── /approve — squash merge and delete branch ─────────────
+      - name: Handle /approve
+        if: contains(github.event.comment.body, '/approve')
+        shell: bash
+        run: |
+          PR_NUMBER="${{ github.event.issue.number }}"
+          ACTOR="${{ github.event.comment.user.login }}"
+          TITLE=$(gh pr view "$PR_NUMBER" --json title --jq '.title')
+
+          echo "Approving PR #${PR_NUMBER}: ${TITLE}"
+
+          gh pr merge "$PR_NUMBER" \
+            --squash \
+            --delete-branch \
+            --subject "${TITLE}"
+
+          echo "✅ PR #${PR_NUMBER} merged and branch deleted by ${ACTOR}"
+
+      # ── /reject — close PR + delete branch + Telegram ─────────
+      - name: Handle /reject
+        if: contains(github.event.comment.body, '/reject')
+        shell: bash
+        run: |
+          PR_NUMBER="${{ github.event.issue.number }}"
+          ACTOR="${{ github.event.comment.user.login }}"
+          BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName --jq '.headRefName')
+
+          # Extract reason (everything after '/reject' on the same line)
+          REASON=$(echo "${{ github.event.comment.body }}" \
+            | grep -o '/reject.*' \
+            | sed 's|/reject[[:space:]]*||' \
+            | head -1)
+          REASON="${REASON:-No reason given}"
+
+          echo "Rejecting PR #${PR_NUMBER} on branch ${BRANCH}. Reason: ${REASON}"
+
+          # Close the PR with a comment
+          gh pr close "$PR_NUMBER" \
+            --comment "❌ **Rejected** by @${ACTOR}
+
+**Reason:** ${REASON}
+
+The branch \`${BRANCH}\` has been deleted. Run the pipeline again to regenerate this week's content."
+
+          # Delete the branch
+          git push origin --delete "$BRANCH" \
+            && echo "Branch ${BRANCH} deleted" \
+            || echo "Branch ${BRANCH} already deleted or not found"
+
+          # Notify via Telegram
+          MSG="❌ *PR Rejected — Phase 2a Python*
+
+*PR:* #${PR_NUMBER}
+*Branch:* \`${BRANCH}\`
+*Rejected by:* @${ACTOR}
+*Reason:* ${REASON}
+
+Branch deleted. Run /python-content-generator to regenerate."
+
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
+            -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=${MSG}" \
+            || echo "Telegram notification failed (non-blocking)"
+
+      # ── Acknowledge with emoji reaction ───────────────────────
+      - name: React to command comment
+        if: always()
+        shell: bash
+        run: |
+          COMMENT_ID="${{ github.event.comment.id }}"
+          BODY="${{ github.event.comment.body }}"
+
+          if echo "$BODY" | grep -q '/approve'; then
+            EMOJI="rocket"
+          else
+            EMOJI="x"
+          fi
+
+          gh api \
+            "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}/reactions" \
+            -X POST \
+            -f "content=${EMOJI}" \
+            || true

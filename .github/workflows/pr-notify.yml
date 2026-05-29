@@ -26,8 +26,8 @@ jobs:
 
           **Actions:**
           • Comment `/approve` to merge and publish
-          • Comment `/rework` to request changes
-          • Close to cancel'
+          • Comment `/rework [feedback]` — AI revises notebooks based on your notes
+          • Comment `/reject [reason]` to close and delete branch'
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
             -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
@@ -158,8 +158,19 @@ jobs:
           fi
           echo "✅ NocoDB updated"
 
-      # ── PR Closed (not merged) ─────────────────────────────────
-      - name: PR Closed (not merged)
+      # ── PR Closed (not merged) — Delete branch + notify ──────────
+      - name: PR Closed (not merged) — Delete branch
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == false
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.CONTENT_PIPELINE_PAT }}
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          git push origin --delete "$BRANCH" \
+            && echo "Branch ${BRANCH} deleted" \
+            || echo "Branch ${BRANCH} already deleted or protected"
+
+      - name: PR Closed (not merged) — Notify
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == false
         shell: bash
         run: |
@@ -167,8 +178,9 @@ jobs:
 
           **PR:** #${{ github.event.pull_request.number }}
           **Title:** ${{ github.event.pull_request.title }}
+          **Branch:** `${{ github.event.pull_request.head.ref }}` (deleted)
 
-          This PR was closed without merging. Run the generation pipeline again to create a new PR.'
+          Run the pipeline again to generate a new PR for this week.'
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
             -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
