@@ -1,0 +1,97 @@
+name: Content Publish — Phase 2a Python
+
+# Triggered when the Claude Routine pushes a content/week-* branch.
+# Creates the GitHub PR and sends the reviewer Telegram notification.
+# Keeps these mechanical ops out of the Claude Routine to save tokens.
+#
+# Notification matrix:
+#   Initial push (new PR)  → creates PR + sends "PR Ready" Telegram to reviewer group
+#   Re-push (rework)       → skips PR creation + skips Telegram (pr-notify.yml handles "PR Updated")
+
+on:
+  push:
+    branches: ['content/week-*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.CONTENT_PIPELINE_PAT }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.CONTENT_PIPELINE_PAT }}
+
+      - name: Create PR and notify reviewer
+        shell: bash
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+
+          # Extract phase-level week number from branch name
+          WEEK=$(echo "$BRANCH" | sed -E 's/content\/week-0*([0-9]+).*/\1/')
+
+          # Find the week folder slug
+          SLUG=$(ls -d curriculum/phase-2a-python/weeks-01-08-teaching/week-$(printf '%02d' "$WEEK")-* 2>/dev/null | head -1 | xargs basename 2>/dev/null)
+          if [ -z "$SLUG" ]; then
+            echo "⚠ No week folder found for week $WEEK on branch $BRANCH — skipping"
+            exit 0
+          fi
+
+          WEEK_PATH="curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}"
+
+          # Extract topic from teaching-curriculum.md heading (committed with content)
+          CURRICULUM="${WEEK_PATH}/teaching-curriculum.md"
+          if [ -f "$CURRICULUM" ]; then
+            TOPIC=$(head -1 "$CURRICULUM" | sed -E 's/^#+ Week [0-9]+ — //' | sed -E 's/^#+ //')
+          else
+            TOPIC="Week ${WEEK}"
+          fi
+
+          # Programme-level week (Excel = 6 teaching + 2 project + 1 break = 9 weeks before Python)
+          OFFSET="${{ vars.PHASE_2A_WEEK_OFFSET }}"
+          OFFSET="${OFFSET:-9}"
+          PROGRAMME_WEEK=$((WEEK + OFFSET))
+
+          # Human review flag
+          REVIEW_NOTE=""
+          if [ -f "${WEEK_PATH}/NEEDS_HUMAN_REVIEW.md" ]; then
+            REVIEW_NOTE="⚠️ One or more notebooks flagged for human review — see NEEDS_HUMAN_REVIEW.md"
+          fi
+
+          # Check if a PR already exists for this branch
+          EXISTING_PR=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number // empty' 2>/dev/null)
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #${EXISTING_PR} already exists for branch ${BRANCH} — skipping creation and Telegram"
+            echo "pr_number=${EXISTING_PR}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Create the PR
+          PR_BODY=$(printf \
+            '## Phase 2a Python — Week %s: %s\n**Programme Week:** %s of 16\n\n### Generated Content\n- ✅ Wednesday demo notebook\n- ✅ Wednesday exercises notebook\n- ✅ Thursday demo notebook\n- ✅ Thursday exercises notebook\n- ✅ 2 lesson plans (self-contained)\n- 📂 Solutions uploaded to Google Drive (gitignored)\n\n%s\n\n### Validation\nAll code cells validated by `validate_notebook_cli.py` before commit.\n\n### Review Commands\nPost a comment with one of:\n- `/approve` — merge and publish to students\n- `/rework [your feedback]` — AI revises notebooks based on your notes\n- `/reject [reason]` — close PR and delete branch' \
+            "$WEEK" "$TOPIC" "$PROGRAMME_WEEK" "$REVIEW_NOTE")
+
+          PR_URL=$(gh pr create \
+            --title "Phase 2a Python — Week ${WEEK}: ${TOPIC}" \
+            --body "$PR_BODY" \
+            --base main \
+            --head "$BRANCH" \
+            --json url --jq '.url')
+
+          PR_NUMBER=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number')
+          echo "✅ PR created: ${PR_URL}"
+
+          # Telegram notification to reviewer group
+          MSG=$'📬 *Phase 2a Python — Week '"${WEEK}"$' (Programme Week '"${PROGRAMME_WEEK}"$') PR Ready*\n\n*Topic:* '"${TOPIC}"$'\n*Branch:* `'"${BRANCH}"$'`\n*PR:* '"${PR_URL}"$'\n\n✅ Notebooks validated\n📂 Solutions on Google Drive\n\n*Review actions (comment on PR):*\n• `/approve` — merge and publish\n• `/rework [feedback]` — AI reworks notebooks\n• `/reject [reason]` — close and delete branch'
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
+            -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=${MSG}" \
+            || echo "⚠ Telegram notification failed (non-blocking)"
