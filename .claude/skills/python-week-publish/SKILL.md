@@ -209,9 +209,14 @@ if [ "$NEEDS_REVIEW" -gt 0 ]; then
   REVIEW_NOTE="⚠️ **${NEEDS_REVIEW} notebook(s) flagged for human review** — see NEEDS_HUMAN_REVIEW.md in the branch"
 fi
 
+# Programme-level week number
+OFFSET="${PHASE_2A_WEEK_OFFSET:-8}"
+PROGRAMME_WEEK=$((WEEK + OFFSET))
+
 gh pr create \
   --title "Phase 2a Python — Week ${WEEK}: ${TOPIC}" \
   --body "## Phase 2a Python — Week ${WEEK}: ${TOPIC}
+**Programme Week:** ${PROGRAMME_WEEK} of 16
 
 ### Generated Content
 - ✅ Wednesday demo notebook
@@ -271,7 +276,11 @@ Checkpoint: set `publishing.drive_uploaded = true`, `publishing.drive_folder = <
 WEEK_NUM=$(printf "%02d" $WEEK)
 PR_URL=$(python3 -c "import json; s=json.load(open('.claude/cache/week-${WEEK_NUM}-generation-state.json')); print(s['publishing']['pr_url'])")
 
-MSG="📬 *Phase 2a Python — Week ${WEEK_NUM} PR Ready*
+# Programme-level week number: read PHASE_2A_WEEK_OFFSET from env (default 8)
+OFFSET="${PHASE_2A_WEEK_OFFSET:-8}"
+PROGRAMME_WEEK=$((WEEK + OFFSET))
+
+MSG="📬 *Phase 2a Python — Week ${WEEK} (Programme Week ${PROGRAMME_WEEK}) PR Ready*
 
 *Topic:* ${TOPIC}
 *Branch:* \`content/${SLUG}\`
