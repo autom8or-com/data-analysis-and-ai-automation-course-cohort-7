@@ -159,6 +159,23 @@ ${INSTRUCTIONS}"
 Claude is applying your feedback now. [Watch the session](${SESSION_URL})
 
 Feedback: *${INSTRUCTIONS}*"
+
+            # Notify reviewer group
+            MSG="🔧 *Rework In Progress — Phase 2a Python*
+
+*PR:* #${PR_NUMBER} — ${TITLE}
+*Triggered by:* @${ACTOR}
+*Feedback:* ${INSTRUCTIONS}
+
+Claude is applying the rework now. The PR will update automatically when done."
+            curl -s -X POST \
+              "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+              -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
+              -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
+              -d "parse_mode=Markdown" \
+              --data-urlencode "text=${MSG}" \
+              || echo "Telegram notification failed (non-blocking)"
+
             echo "✅ Rework routine fired. Session: ${SESSION_URL}"
           else
             echo "⚠ Routine API call failed (HTTP ${HTTP_CODE}): ${BODY}"

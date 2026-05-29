@@ -11,23 +11,21 @@ jobs:
     if: startsWith(github.event.pull_request.head.ref, 'content/week-')
 
     steps:
-      # ── PR Opened or Updated ──────────────────────────────────
-      - name: PR Opened or Updated
-        if: github.event_name == 'pull_request' && github.event.action != 'closed'
+      # ── PR Updated (push to existing PR branch) ──────────────
+      # PR creation notification is handled by /python-week-publish skill Step P8
+      # (richer message with topic, programme week, Drive confirmation).
+      # This step handles only subsequent pushes to the branch (e.g. after /rework).
+      - name: PR Updated
+        if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
         shell: bash
         run: |
-          MSG='📬 **PR ${{ github.event.action == 'opened' && 'Created' || 'Updated' }} — Phase 2a Python**
+          MSG='🔄 **PR Updated — Phase 2a Python**
 
           **PR:** #${{ github.event.pull_request.number }}
           **Title:** ${{ github.event.pull_request.title }}
           **Branch:** `${{ github.event.pull_request.head.ref }}`
 
-          🔗 ${{ github.event.pull_request.html_url }}
-
-          **Actions:**
-          • Comment `/approve` to merge and publish
-          • Comment `/rework [feedback]` — AI revises notebooks based on your notes
-          • Comment `/reject [reason]` to close and delete branch'
+          🔗 ${{ github.event.pull_request.html_url }}'
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
             -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
@@ -166,19 +164,6 @@ jobs:
             && echo "Branch ${BRANCH} deleted" \
             || echo "Branch ${BRANCH} already deleted or protected"
 
-      - name: PR Closed (not merged) — Notify
-        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == false
-        shell: bash
-        run: |
-          MSG='❌ **PR Closed — Not Merged**
-
-          **PR:** #${{ github.event.pull_request.number }}
-          **Title:** ${{ github.event.pull_request.title }}
-          **Branch:** `${{ github.event.pull_request.head.ref }}` (deleted)
-
-          Run the pipeline again to generate a new PR for this week.'
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
-            -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
-            -d "parse_mode=Markdown" \
-            --data-urlencode "text=$MSG"
+      # ── PR Closed (not merged) — notification handled by pr-commands.yml /reject
+      # which sends a richer message including the rejection reason and actor.
+      # No duplicate Telegram here.
