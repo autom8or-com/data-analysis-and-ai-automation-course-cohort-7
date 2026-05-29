@@ -1,9 +1,14 @@
 name: PR Commands — Phase 2a Content Review
 
-# Handles /approve, /reject comments on Phase 2a content PRs.
-# /rework is handled by the "Phase 2a Python — Content Rework" Claude Routine,
-# which fires on PR comment events and uses Claude to apply targeted improvements.
-# This workflow uses pure bash — no Claude API calls required.
+# Handles /approve, /reject, /rework comments on Phase 2a content PRs.
+# /approve  — squash merge + delete branch (pure bash)
+# /reject   — close PR + delete branch + Telegram (pure bash)
+# /rework   — calls the "Phase 2a Python — Content Rework" Claude Routine via
+#             its API trigger endpoint. The Routine runs on Anthropic cloud and
+#             applies targeted notebook improvements based on the reviewer's notes.
+#             Requires REWORK_ROUTINE_URL and REWORK_ROUTINE_TOKEN secrets.
+#             (GitHub event triggers in Routines do not support issue_comment events;
+#              the API trigger pattern is the correct approach.)
 
 on:
   issue_comment:
@@ -16,7 +21,8 @@ jobs:
       startsWith(github.event.issue.title, 'Phase 2a Python') &&
       (
         contains(github.event.comment.body, '/approve') ||
-        contains(github.event.comment.body, '/reject')
+        contains(github.event.comment.body, '/reject') ||
+        contains(github.event.comment.body, '/rework')
       )
     runs-on: ubuntu-latest
     permissions:
@@ -101,6 +107,65 @@ Branch deleted. Run /python-content-generator to regenerate."
             --data-urlencode "text=${MSG}" \
             || echo "Telegram notification failed (non-blocking)"
 
+      # ── /rework — call Claude Routine API endpoint ────────────
+      - name: Handle /rework
+        if: |
+          contains(github.event.comment.body, '/rework') &&
+          !contains(github.event.comment.body, '/approve') &&
+          !contains(github.event.comment.body, '/reject')
+        shell: bash
+        run: |
+          PR_NUMBER="${{ github.event.issue.number }}"
+          ACTOR="${{ github.event.comment.user.login }}"
+          BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName --jq '.headRefName')
+          TITLE=$(gh pr view "$PR_NUMBER" --json title --jq '.title')
+
+          # Extract everything after '/rework' as the instructions
+          INSTRUCTIONS=$(echo "${{ github.event.comment.body }}" \
+            | grep -o '/rework.*' \
+            | sed 's|/rework[[:space:]]*||' \
+            | head -1)
+          INSTRUCTIONS="${INSTRUCTIONS:-No specific instructions provided — apply general quality improvements}"
+
+          echo "Dispatching /rework for PR #${PR_NUMBER} (${BRANCH}) to Claude Routine..."
+
+          # Build context payload for the Routine
+          TEXT="/rework trigger from PR #${PR_NUMBER}
+
+PR: #${PR_NUMBER}
+Branch: ${BRANCH}
+Title: ${TITLE}
+Reviewer: @${ACTOR}
+
+Rework instructions:
+${INSTRUCTIONS}"
+
+          # Fire the Content Rework Claude Routine via its API trigger
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.REWORK_ROUTINE_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.REWORK_ROUTINE_TOKEN }}" \
+            -H "anthropic-beta: experimental-cc-routine-2026-04-01" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": $(echo "$TEXT" | jq -Rs .)}")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            SESSION_URL=$(echo "$BODY" | jq -r '.claude_code_session_url // empty')
+            gh pr comment "$PR_NUMBER" \
+              --body "🔧 **Rework triggered** by @${ACTOR}
+
+Claude is applying your feedback now. [Watch the session](${SESSION_URL})
+
+Feedback: *${INSTRUCTIONS}*"
+            echo "✅ Rework routine fired. Session: ${SESSION_URL}"
+          else
+            echo "⚠ Routine API call failed (HTTP ${HTTP_CODE}): ${BODY}"
+            gh pr comment "$PR_NUMBER" \
+              --body "⚠️ **Rework trigger failed** (HTTP ${HTTP_CODE}) — check the \`REWORK_ROUTINE_URL\` and \`REWORK_ROUTINE_TOKEN\` secrets, or run \`/python-content-generator\` manually on the branch \`${BRANCH}\`."
+          fi
+
       # ── Acknowledge with emoji reaction ───────────────────────
       - name: React to command comment
         if: always()
@@ -111,6 +176,8 @@ Branch deleted. Run /python-content-generator to regenerate."
 
           if echo "$BODY" | grep -q '/approve'; then
             EMOJI="rocket"
+          elif echo "$BODY" | grep -q '/rework'; then
+            EMOJI="wrench"
           else
             EMOJI="x"
           fi
