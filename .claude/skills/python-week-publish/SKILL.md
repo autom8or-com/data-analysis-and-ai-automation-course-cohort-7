@@ -249,27 +249,25 @@ Checkpoint: set `publishing.pr_created = true`, `publishing.pr_url = <url>`, `pu
 
 Solutions are gitignored — Google Drive is the only permanent storage.
 
-```bash
-WEEK_NUM=$(printf "%02d" $WEEK)
-SLUG="week-${WEEK_NUM}-<slug>"
-TOPIC=$(cat .claude/cache/week-${WEEK_NUM}-context.json | python3 -c "import json,sys; print(json.load(sys.stdin)['topic_name'])")
-DRIVE_FOLDER="Week ${WEEK_NUM} - ${TOPIC}"
+**Prerequisites**: The Google Drive MCP connector must be added to this Routine's connectors at `claude.ai/code/routines`. The `GDRIVE_PHASE2A_FOLDER_ID` environment variable must be set in the Routine's environment (the Drive folder ID of the Phase 2a solutions parent folder).
 
-# Upload solutions from both days
-rclone copy \
-  curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/01-wednesday/solutions/ \
-  "gdrive-course:${GDRIVE_PHASE2A_PATH}/${DRIVE_FOLDER}/wednesday-solutions/" \
-  --progress
+Use the Google Drive MCP tools to complete these steps:
 
-rclone copy \
-  curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/02-thursday/solutions/ \
-  "gdrive-course:${GDRIVE_PHASE2A_PATH}/${DRIVE_FOLDER}/thursday-solutions/" \
-  --progress
-```
+1. **Find or create the week subfolder** inside the Phase 2a parent folder (`GDRIVE_PHASE2A_FOLDER_ID`):
+   - Target folder name: `Week NN - <Topic Name>` (e.g. `Week 02 - Collections & Control Flow`)
+   - Search for an existing folder with that name under the parent ID
+   - If not found, create it
 
-If rclone fails: log warning and continue. The PR is already created — this is recoverable.
+2. **Find or create** `wednesday-solutions` and `thursday-solutions` sub-folders inside the week folder
 
-Checkpoint: set `publishing.drive_uploaded = true`, `publishing.drive_folder = <folder name>`
+3. **Upload each solution notebook** using the MCP create/upload tool:
+   - Read each `.ipynb` file from `curriculum/.../week-NN-slug/01-wednesday/solutions/`
+   - Upload to the `wednesday-solutions` folder
+   - Repeat for `02-thursday/solutions/` → `thursday-solutions` folder
+
+If any MCP call fails: log the warning and continue. The PR is already created — Drive upload is recoverable.
+
+Checkpoint: set `publishing.drive_uploaded = true`, `publishing.drive_folder = "Week NN - <Topic>"`
 
 ### Step P8 — Send Telegram notification
 
@@ -323,6 +321,6 @@ Next: Review the PR and comment /approve when ready.
 
 - **git push fails** (branch exists remotely): use `git push --force-with-lease` for the content branch only
 - **gh CLI not available**: use GitHub API directly via curl with `$GITHUB_TOKEN`
-- **rclone not configured**: log warning, skip Drive upload, continue to Telegram
+- **Google Drive MCP unavailable**: log warning, skip Drive upload, continue to Telegram
 - **Telegram fails**: log warning, continue — PR is the primary deliverable
 - **Any step fails after git push**: re-running this skill will skip completed steps and retry from the failed step
