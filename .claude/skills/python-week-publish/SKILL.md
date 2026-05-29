@@ -3,9 +3,10 @@ name: python-week-publish
 description: >
   Perform all post-generation publishing operations for one Phase 2a Python week:
   update .gitignore for progressive disclosure, remove .gitkeep placeholders,
-  git commit and push, create the GitHub PR, upload solutions to Google Drive,
-  and send Telegram notifications. Reads the generation checkpoint to skip
-  already-completed steps (safe to re-run after interruption).
+  git commit and push, and upload solutions to Google Drive.
+  PR creation and Telegram notification are handled automatically by the
+  content-publish.yml GitHub Actions workflow triggered on push to content/week-*.
+  Reads the generation checkpoint to skip already-completed steps (safe to re-run).
   Used internally by /python-content-generator. Can be called standalone to
   retry failed publishing steps without re-running generation.
 ---
@@ -186,64 +187,12 @@ git push -u origin content/${SLUG}
 
 Checkpoint: set `publishing.git_committed = true`, `publishing.git_pushed = true`
 
-### Step P6 — Create GitHub PR
+### Step P6 — (handled by GitHub Actions)
 
-Use the `gh` CLI or GitHub MCP tools to create the PR:
+PR creation is handled automatically by `.github/workflows/content-publish.yml`,
+which triggers on the `git push` in Step P5. No action required here.
 
-```bash
-WEEK_NUM=$(printf "%02d" $WEEK)
-SLUG="week-${WEEK_NUM}-<slug>"
-TOPIC=$(cat .claude/cache/week-${WEEK_NUM}-context.json | python3 -c "import json,sys; print(json.load(sys.stdin)['topic_name'])")
-
-# Count any needs_human_review notebooks
-NEEDS_REVIEW=$(python3 -c "
-import json
-with open('.claude/cache/week-${WEEK_NUM}-generation-state.json') as f:
-    s = json.load(f)
-count = sum(1 for v in s['notebooks'].values() if v['status'] == 'needs_human_review')
-print(count)
-")
-
-REVIEW_NOTE=""
-if [ "$NEEDS_REVIEW" -gt 0 ]; then
-  REVIEW_NOTE="⚠️ **${NEEDS_REVIEW} notebook(s) flagged for human review** — see NEEDS_HUMAN_REVIEW.md in the branch"
-fi
-
-# Programme-level week number
-# Excel: 6 teaching + 2 project + 1 break = 9 weeks before Python starts
-OFFSET="${PHASE_2A_WEEK_OFFSET:-9}"
-PROGRAMME_WEEK=$((WEEK + OFFSET))
-
-gh pr create \
-  --title "Phase 2a Python — Week ${WEEK}: ${TOPIC}" \
-  --body "## Phase 2a Python — Week ${WEEK}: ${TOPIC}
-**Programme Week:** ${PROGRAMME_WEEK} of 16
-
-### Generated Content
-- ✅ Wednesday demo notebook
-- ✅ Wednesday exercises notebook  
-- ✅ Thursday demo notebook
-- ✅ Thursday exercises notebook
-- ✅ 2 lesson plans (self-contained)
-- 📂 Solutions uploaded to Google Drive (gitignored)
-
-${REVIEW_NOTE}
-
-### Validation Summary
-All code cells validated before commit. See \`.claude/cache/week-${WEEK_NUM}-*-validation.json\` for details.
-
-### Review Commands
-Post a comment with one of:
-- \`/approve\` — merge and publish to students
-- \`/rework [your feedback]\` — AI revises notebooks based on your notes
-- \`/reject [reason]\` — close PR and delete branch" \
-  --base main \
-  --head content/${SLUG}
-```
-
-Save the PR number and URL to the generation state.
-
-Checkpoint: set `publishing.pr_created = true`, `publishing.pr_url = <url>`, `publishing.pr_number = <number>`
+Checkpoint: set `publishing.pr_created = "handled_by_gha"`
 
 ### Step P7 — Upload solutions to Google Drive
 
@@ -269,50 +218,24 @@ If any MCP call fails: log the warning and continue. The PR is already created �
 
 Checkpoint: set `publishing.drive_uploaded = true`, `publishing.drive_folder = "Week NN - <Topic>"`
 
-### Step P8 — Send Telegram notification
+### Step P8 — (handled by GitHub Actions)
 
-```bash
-WEEK_NUM=$(printf "%02d" $WEEK)
-PR_URL=$(python3 -c "import json; s=json.load(open('.claude/cache/week-${WEEK_NUM}-generation-state.json')); print(s['publishing']['pr_url'])")
+Telegram notification to the reviewer group is sent by `.github/workflows/content-publish.yml`
+immediately after PR creation. No action required here.
 
-# Programme-level week number: read PHASE_2A_WEEK_OFFSET from env (default 8)
-# Excel: 6 teaching + 2 project + 1 break = 9 weeks before Python starts
-OFFSET="${PHASE_2A_WEEK_OFFSET:-9}"
-PROGRAMME_WEEK=$((WEEK + OFFSET))
-
-MSG="📬 *Phase 2a Python — Week ${WEEK} (Programme Week ${PROGRAMME_WEEK}) PR Ready*
-
-*Topic:* ${TOPIC}
-*Branch:* \`content/${SLUG}\`
-*PR:* ${PR_URL}
-
-✅ Notebooks validated
-📂 Solutions on Google Drive
-
-*Review actions (comment on PR):*
-• \`/approve\` — merge and publish
-• \`/rework [feedback]\` — AI reworks notebooks
-• \`/reject [reason]\` — close and delete branch"
-
-curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-  -d "chat_id=${TELEGRAM_REVIEWER_CHAT_ID}" \
-  -d "message_thread_id=${CONTENT_PIPELINE_TOPIC_ID}" \
-  -d "parse_mode=Markdown" \
-  --data-urlencode "text=${MSG}"
-```
-
-Checkpoint: set `publishing.telegram_sent = true`
+Checkpoint: set `publishing.telegram_sent = "handled_by_gha"`
 
 ### Step P9 — Final summary
 
 ```
 ✅ Week N publishing complete
-   PR: <url>
    Branch: content/<slug>
    Drive: <folder path>
    Notebooks validated: 6/6 (or 5/6 with 1 flagged for review)
+   PR + Telegram: triggered by git push → content-publish.yml workflow
 
-Next: Review the PR and comment /approve when ready.
+Next: Wait ~30s for content-publish.yml to create the PR, then check GitHub.
+      Review the PR and comment /approve when ready.
 ```
 
 ---
@@ -320,7 +243,6 @@ Next: Review the PR and comment /approve when ready.
 ## Error Handling
 
 - **git push fails** (branch exists remotely): use `git push --force-with-lease` for the content branch only
-- **gh CLI not available**: use GitHub API directly via curl with `$GITHUB_TOKEN`
-- **Google Drive MCP unavailable**: log warning, skip Drive upload, continue to Telegram
-- **Telegram fails**: log warning, continue — PR is the primary deliverable
+- **Google Drive MCP unavailable**: log warning, skip Drive upload, continue — PR creation still triggers from the push
+- **PR not created after push**: check GitHub Actions tab for `content-publish.yml` run; re-trigger by pushing an empty commit if needed
 - **Any step fails after git push**: re-running this skill will skip completed steps and retry from the failed step
