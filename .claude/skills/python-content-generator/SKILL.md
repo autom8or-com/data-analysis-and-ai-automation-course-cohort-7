@@ -264,12 +264,13 @@ rm .claude/cache/week-NN-generation-state.json
 
 ## Prerequisites
 
-- `curriculum/phase-2a-python/teaching-curriculum.md` on disk (may be gitignored; must exist)
-- `datasets/phase-2-python-sql/olist-data.zip` present
-- `GITHUB_TOKEN` environment variable (for PR creation via `gh` CLI)
-- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_REVIEWER_CHAT_ID`, `CONTENT_PIPELINE_TOPIC_ID` (for Telegram)
-- rclone configured with `gdrive-course` remote (for Drive upload)
-- `GDRIVE_PHASE2A_PATH` environment variable (name of the Phase 2a folder on Drive)
+- `curriculum/phase-2a-python/teaching-curriculum.md` on disk (may be gitignored; must exist locally or in Routine workspace)
+- `GITHUB_TOKEN` environment variable (for `git push` via authenticated remote URL)
+- `GDRIVE_OLIST_FOLDER_ID` environment variable — Google Drive folder ID containing `phase-2-python-sql.zip`; the validation skill downloads it on first use
+- `GDRIVE_PHASE2A_FOLDER_ID` environment variable — Google Drive folder ID for Phase 2a solutions upload
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_REVIEWER_CHAT_ID`, `CONTENT_PIPELINE_TOPIC_ID` (for Telegram — used by `content-publish.yml` GHA, not the Routine directly)
+
+> **Note**: `olist-data.zip` no longer needs to be on disk. The validate skill downloads `phase-2-python-sql.zip` from Google Drive using the MCP connector on demand.
 
 ---
 
