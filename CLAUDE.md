@@ -95,9 +95,10 @@ If a file appears missing, check `.gitignore` before assuming it doesn't exist.
 
 Before starting any content generation pipeline, verify these files exist on disk:
 - `curriculum/phase-2a-python/teaching-curriculum.md` (gitignored — check disk, not git)
-- `datasets/phase-2-python-sql/olist-data.zip`
 
-If either is missing, stop and tell the user immediately. Do not infer or fabricate content.
+If missing, stop and tell the user immediately. Do not infer or fabricate content.
+
+> **Olist dataset**: `datasets/phase-2-python-sql/olist-data.zip` is no longer required on disk. In the Claude Routine environment, the validate skill downloads `phase-2-python-sql.zip` from Google Drive (folder `GDRIVE_OLIST_FOLDER_ID`) on demand and extracts it to `/tmp/olist_data/`. For local runs, either have the zip on disk at `datasets/phase-2-python-sql/olist-data.zip` or set `OLIST_DATA_PATH` to point to an already-extracted folder.
 
 ## Phase 2a Python content pipeline
 
@@ -126,8 +127,9 @@ After creating Routine 2, copy its API URL and generate a token → add as GitHu
 
 **Routine environment variables** (set in each Routine's environment at `claude.ai/code/routines`):
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_REVIEWER_CHAT_ID`, `CONTENT_PIPELINE_TOPIC_ID` — Telegram notifications
-- `GDRIVE_PHASE2A_FOLDER_ID` — Google Drive folder ID for Phase 2a solutions (no rclone needed)
-- `GITHUB_TOKEN` — for PR creation via gh CLI
+- `GDRIVE_PHASE2A_FOLDER_ID` — Google Drive folder ID for Phase 2a solutions upload
+- `GDRIVE_OLIST_FOLDER_ID` — Google Drive folder ID containing `phase-2-python-sql.zip` (value: `10sKfHCbUsvazdmyxkuskenlsiz_sZE1l`); used by the validate skill to download Olist data at runtime
+- `GITHUB_TOKEN` — for authenticated `git push` (embedded in remote URL; no gh CLI needed)
 
 **MCP connectors** (add to both Routines in the Connectors tab):
 - Google Drive — for solution file uploads (replaces rclone; no service account JSON key needed)

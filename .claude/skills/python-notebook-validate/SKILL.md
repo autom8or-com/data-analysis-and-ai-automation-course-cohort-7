@@ -28,6 +28,38 @@ Quality gate between notebook generation and git commit. Calls a pre-committed s
 
 ---
 
+## Step 0 — Ensure Olist data is available (Weeks 3+ only)
+
+For Weeks 1–2, skip this step entirely.
+
+For Weeks 3–8: the validation script executes notebook code that reads Olist CSVs. The data must be on disk before running the script.
+
+Check if `/tmp/olist_data/` already exists and contains CSV files (a previous notebook in the same run may have already downloaded it):
+
+```bash
+if [ -d "/tmp/olist_data" ] && [ -n "$(ls /tmp/olist_data/*.csv 2>/dev/null)" ]; then
+  echo "Olist data already available at /tmp/olist_data"
+else
+  echo "Downloading Olist dataset from Google Drive..."
+  mkdir -p /tmp/olist_data
+
+  # Use Google Drive MCP tools to:
+  # 1. Search for file named "phase-2-python-sql.zip" in folder GDRIVE_OLIST_FOLDER_ID
+  # 2. Download it to /tmp/phase-2-python-sql.zip
+  # 3. Extract: unzip -q /tmp/phase-2-python-sql.zip -d /tmp/olist_data/
+  # 4. Verify: ls /tmp/olist_data/ shows CSV files
+
+  unzip -q /tmp/phase-2-python-sql.zip -d /tmp/olist_data/
+  echo "✅ Olist data extracted to /tmp/olist_data/"
+fi
+
+export OLIST_DATA_PATH="/tmp/olist_data"
+```
+
+**If download fails**: log the warning and fall back to syntax-only check (no execution). Do not abort the pipeline — a syntax pass with a drive-unavailable warning is better than a full stop.
+
+---
+
 ## Step 1 — Derive output path
 
 ```python
