@@ -151,20 +151,37 @@ def syntax_check_cells(nb_cells):
 
 def execution_check(notebook_path: str):
     """Execute notebook via nbconvert on a path-patched copy. Returns (exec_path, error)."""
+    # OLIST_DATA_PATH is set before running the Routine's validation step.
+    # It points to the directory where phase-2-python-sql.zip was extracted.
+    olist_data_path = os.environ.get("OLIST_DATA_PATH", "/tmp/olist_data")
+
     with open(notebook_path) as f:
         nb = json.load(f)
 
     for cell in nb.get("cells", []):
         if cell.get("cell_type") == "code":
             src = get_cell_text(cell)
+
+            # Remove Colab-only lines that fail outside Colab
             src = src.replace(
-                "'/content/drive/MyDrive/",
-                "'datasets/phase-2-python-sql/olist_extracted/",
+                "from google.colab import drive",
+                "# removed for validation — not in Colab",
             )
             src = src.replace(
-                '"/content/drive/MyDrive/',
-                '"datasets/phase-2-python-sql/olist_extracted/',
+                "drive.mount('/content/drive')",
+                "# removed for validation — not in Colab",
             )
+
+            # Patch the olist_path variable to point to the locally extracted folder
+            src = src.replace(
+                "olist_path = '/content/drive/MyDrive/olist-data'",
+                f"olist_path = '{olist_data_path}'",
+            )
+            src = src.replace(
+                'olist_path = "/content/drive/MyDrive/olist-data"',
+                f'olist_path = "{olist_data_path}"',
+            )
+
             cell["source"] = src
 
     with tempfile.NamedTemporaryFile(suffix=".ipynb", mode="w", delete=False) as tmp:
