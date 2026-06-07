@@ -53,7 +53,7 @@ jobs:
 
           # Programme-level week (Excel = 6 teaching + 2 project + 1 break = 9 weeks before Python)
           OFFSET="${{ vars.PHASE_2A_WEEK_OFFSET }}"
-          OFFSET="${OFFSET:-9}"
+          OFFSET="${OFFSET:-8}"
           PROGRAMME_WEEK=$((WEEK + OFFSET))
 
           # Human review flag
@@ -86,12 +86,28 @@ jobs:
           PR_NUMBER=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number')
           echo "✅ PR created: ${PR_URL}"
 
+          # Content links — lesson plans on the branch (visible before merge)
+          REPO="autom8or-com/data-analysis-and-ai-automation-course-cohort-7"
+          WED_LESSON_URL="https://github.com/${REPO}/blob/${BRANCH}/${WEEK_PATH}/01-wednesday/lesson-plan.md"
+          THU_LESSON_URL="https://github.com/${REPO}/blob/${BRANCH}/${WEEK_PATH}/02-thursday/lesson-plan.md"
+          WEEK_PADDED=$(printf "%02d" "$WEEK")
+          WED_COLAB="https://colab.research.google.com/github/${REPO}/blob/${BRANCH}/${WEEK_PATH}/01-wednesday/lecture-materials/week-${WEEK_PADDED}-wed-demo.ipynb"
+          THU_COLAB="https://colab.research.google.com/github/${REPO}/blob/${BRANCH}/${WEEK_PATH}/02-thursday/lecture-materials/week-${WEEK_PADDED}-thu-demo.ipynb"
+          DRIVE_URL="https://drive.google.com/drive/folders/${{ vars.GDRIVE_PHASE2A_FOLDER_ID }}"
+
+          REVIEW_LINE=""
+          [ -n "$REVIEW_NOTE" ] && REVIEW_LINE=$(printf '\n&#9888;&#65039; %s' "$REVIEW_NOTE")
+
           # Telegram notification to reviewer group
-          MSG=$'📬 *Phase 2a Python — Week '"${WEEK}"$' (Programme Week '"${PROGRAMME_WEEK}"$') PR Ready*\n\n*Topic:* '"${TOPIC}"$'\n*Branch:* `'"${BRANCH}"$'`\n*PR:* '"${PR_URL}"$'\n\n✅ Notebooks validated\n📂 Solutions on Google Drive\n\n*Review actions (comment on PR):*\n• `/approve` — merge and publish\n• `/rework [feedback]` — AI reworks notebooks\n• `/reject [reason]` — close and delete branch'
+          MSG=$(printf '&#128236; <b>Phase 2a Python &#8212; Week %s (Programme Week %s) PR Ready</b>\n\n<b>Topic:</b> %s\n<b>Branch:</b> <code>%s</code>\n<b>PR:</b> %s%s\n\n&#128218; <b>Lesson Plans (on branch):</b>\n&#8226; <a href="%s">Wednesday</a>\n&#8226; <a href="%s">Thursday</a>\n\n&#128211; <b>Demo Notebooks (open in Colab):</b>\n&#8226; <a href="%s">Wednesday Demo</a>\n&#8226; <a href="%s">Thursday Demo</a>\n\n&#128194; <b>Solutions:</b> <a href="%s">Google Drive</a> &#8594; Week %s &#8212; %s\n\n&#9989; Notebooks validated\n\n<b>Review actions (comment on PR):</b>\n&#8226; <code>/approve</code> &#8212; merge and publish\n&#8226; <code>/rework [feedback]</code> &#8212; AI reworks notebooks\n&#8226; <code>/reject [reason]</code> &#8212; close and delete branch' \
+            "$WEEK" "$PROGRAMME_WEEK" "$TOPIC" "$BRANCH" "$PR_URL" "$REVIEW_LINE" \
+            "$WED_LESSON_URL" "$THU_LESSON_URL" \
+            "$WED_COLAB" "$THU_COLAB" \
+            "$DRIVE_URL" "$WEEK" "$TOPIC")
           curl -s -X POST \
             "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
             -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
-            -d "parse_mode=Markdown" \
+            -d "parse_mode=HTML" \
             --data-urlencode "text=${MSG}" \
             || echo "⚠ Telegram notification failed (non-blocking)"

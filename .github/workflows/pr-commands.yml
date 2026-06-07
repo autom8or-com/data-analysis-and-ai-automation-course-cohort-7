@@ -43,10 +43,11 @@ jobs:
       # ── /approve — squash merge and delete branch ─────────────
       - name: Handle /approve
         if: contains(github.event.comment.body, '/approve')
+        env:
+          PR_NUMBER: ${{ github.event.issue.number }}
+          ACTOR: ${{ github.event.comment.user.login }}
         shell: bash
         run: |
-          PR_NUMBER="${{ github.event.issue.number }}"
-          ACTOR="${{ github.event.comment.user.login }}"
           TITLE=$(gh pr view "$PR_NUMBER" --json title --jq '.title')
 
           echo "Approving PR #${PR_NUMBER}: ${TITLE}"
@@ -61,13 +62,15 @@ jobs:
       # ── /reject — close PR + delete branch + Telegram ─────────
       - name: Handle /reject
         if: contains(github.event.comment.body, '/reject')
+        env:
+          PR_NUMBER: ${{ github.event.issue.number }}
+          ACTOR: ${{ github.event.comment.user.login }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
         shell: bash
         run: |
-          PR_NUMBER="${{ github.event.issue.number }}"
-          ACTOR="${{ github.event.comment.user.login }}"
           BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName --jq '.headRefName')
 
-          REASON=$(echo "${{ github.event.comment.body }}" \
+          REASON=$(echo "$COMMENT_BODY" \
             | grep -o '/reject.*' \
             | sed 's|/reject[[:space:]]*||' \
             | head -1)
@@ -97,14 +100,16 @@ jobs:
           contains(github.event.comment.body, '/rework') &&
           !contains(github.event.comment.body, '/approve') &&
           !contains(github.event.comment.body, '/reject')
+        env:
+          PR_NUMBER: ${{ github.event.issue.number }}
+          ACTOR: ${{ github.event.comment.user.login }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
         shell: bash
         run: |
-          PR_NUMBER="${{ github.event.issue.number }}"
-          ACTOR="${{ github.event.comment.user.login }}"
           BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName --jq '.headRefName')
           TITLE=$(gh pr view "$PR_NUMBER" --json title --jq '.title')
 
-          INSTRUCTIONS=$(echo "${{ github.event.comment.body }}" \
+          INSTRUCTIONS=$(echo "$COMMENT_BODY" \
             | grep -o '/rework.*' \
             | sed 's|/rework[[:space:]]*||' \
             | head -1)
@@ -149,21 +154,22 @@ jobs:
       # ── Acknowledge with emoji reaction ───────────────────────
       - name: React to command comment
         if: always()
+        env:
+          COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          REPO: ${{ github.repository }}
         shell: bash
         run: |
-          COMMENT_ID="${{ github.event.comment.id }}"
-          BODY="${{ github.event.comment.body }}"
-
-          if echo "$BODY" | grep -q '/approve'; then
+          if echo "$COMMENT_BODY" | grep -q '/approve'; then
             EMOJI="rocket"
-          elif echo "$BODY" | grep -q '/rework'; then
+          elif echo "$COMMENT_BODY" | grep -q '/rework'; then
             EMOJI="wrench"
           else
             EMOJI="x"
           fi
 
           gh api \
-            "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}/reactions" \
+            "repos/${REPO}/issues/comments/${COMMENT_ID}/reactions" \
             -X POST \
             -f "content=${EMOJI}" \
             || true
