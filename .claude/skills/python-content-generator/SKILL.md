@@ -149,14 +149,14 @@ For each notebook that is NOT already `status: "validated"`:
 
 Update checkpoint: `status = "generating"`, increment `attempts`.
 
-Spawn a Claude Opus 4.8 sub-agent to execute `/python-notebook-generate` with:
+Invoke `/python-notebook-generate` directly (as a skill, not a sub-agent) with:
 - Week number
 - Day (`wed` or `thu`)
 - Notebook type (`demo`, `exercises`, or `solutions`)
 - Context bundle path: `.pipeline-cache/week-NN-context.json`
 - Rework notes (if this is a retry): the `rework_notes` from the previous validation failure
 
-The sub-agent generates the notebook and writes it to the correct path.
+Read the SKILL.md at `.claude/skills/python-notebook-generate/SKILL.md` and follow its instructions to generate the notebook and write it to the correct path.
 
 #### 5b. Validate
 

@@ -5,13 +5,13 @@ description: >
   Phase 2a Python week, using Claude Opus 4.8 to EXPAND the curriculum skeleton
   into a fully realized pedagogical experience. Enforces the mandatory 8-section
   teaching structure. All code uses real Olist values from the context bundle.
-  Used internally by /python-content-generator. Can be called standalone to
-  regenerate a single notebook with optional rework notes.
+  Invoked directly by /python-content-generator (no sub-agent spawning).
+  Can also be called standalone to regenerate a single notebook with optional rework notes.
 ---
 
 # Python Notebook Generator
 
-Generates one `.ipynb` file by expanding the curriculum context into a complete teaching experience. This skill is invoked as a Claude Opus 4.8 sub-agent by the orchestrator.
+Generates one `.ipynb` file by expanding the curriculum context into a complete teaching experience. Invoked directly by the orchestrator as a skill.
 
 ---
 
