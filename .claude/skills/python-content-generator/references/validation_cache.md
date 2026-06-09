@@ -6,7 +6,7 @@ Olist dataset (99,441 rows) doesn't change. Validating every week's code cells a
 
 ## Cache Mechanism
 
-**File location:** `.claude/cache/phase2a-validation-cache.json` (project-level, gitignored — each machine builds its own cache)
+**File location:** `.pipeline-cache/phase2a-validation-cache.json` (project-level, gitignored — each machine builds its own cache)
 
 **Strategy:**
 1. Compute MD5 hash of `olist-data.zip`

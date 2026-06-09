@@ -13,7 +13,7 @@ description: >
 
 # Python Week Publisher
 
-Handles all publishing ops after notebooks are validated. Idempotent — reads `.claude/cache/week-NN-generation-state.json` and skips completed steps. Safe to call multiple times.
+Handles all publishing ops after notebooks are validated. Idempotent — reads `.pipeline-cache/week-NN-generation-state.json` and skips completed steps. Safe to call multiple times.
 
 ---
 
@@ -21,7 +21,7 @@ Handles all publishing ops after notebooks are validated. Idempotent — reads `
 
 - **Week number** (1–8)
 - **Week slug** (from the slug mapping in `/python-week-context`)
-- **Generation state path**: `.claude/cache/week-NN-generation-state.json`
+- **Generation state path**: `.pipeline-cache/week-NN-generation-state.json`
 
 ## Prerequisite
 
@@ -72,7 +72,11 @@ Checkpoint: set `publishing.gitignore_updated = true`
 ### Step P2 — Remove .gitkeep files
 
 ```bash
-find curriculum/phase-2a-python/weeks-01-08-teaching/<slug>/ -name ".gitkeep" -delete
+SLUG="week-$(printf '%02d' $WEEK)-<slug>"
+rm -f curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/01-wednesday/lecture-materials/.gitkeep
+rm -f curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/01-wednesday/exercises/.gitkeep
+rm -f curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/02-thursday/lecture-materials/.gitkeep
+rm -f curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/02-thursday/exercises/.gitkeep
 echo "Removed .gitkeep files"
 ```
 
@@ -172,7 +176,7 @@ git config user.email "pipeline@pora.academy"
 git config user.name "PORA Content Pipeline"
 
 SLUG="week-$(printf '%02d' $WEEK)-<slug>"
-TOPIC=$(cat .claude/cache/week-${WEEK}-context.json | python3 -c "import json,sys; print(json.load(sys.stdin)['topic_name'])")
+TOPIC=$(python3 -c "import json; print(json.load(open('.pipeline-cache/week-0${WEEK}-context.json'))['topic_name'])")
 
 git add curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/
 git add .gitignore

@@ -16,14 +16,14 @@ Quality gate between notebook generation and git commit. Calls a pre-committed s
 ## Inputs
 
 - **Notebook path**: absolute or repo-relative path to the `.ipynb` file
-- **Context bundle path**: `.claude/cache/week-NN-context.json`
+- **Context bundle path**: `.pipeline-cache/week-NN-context.json`
 - **Week number** (for routing Week 1–2 syntax-only vs Week 3+ full execution)
-- **Generation state path**: `.claude/cache/week-NN-generation-state.json` (for checkpoint writes)
+- **Generation state path**: `.pipeline-cache/week-NN-generation-state.json` (for checkpoint writes)
 - **Notebook key**: one of `wed-demo`, `wed-exercises`, `wed-solutions`, `thu-demo`, `thu-exercises`, `thu-solutions`
 
 ## Output
 
-- Validation report at `.claude/cache/week-NN-{day}-{type}-validation.json`
+- Validation report at `.pipeline-cache/week-NN-{day}-{type}-validation.json`
 - Returns `status: "pass"` or `status: "fail"` with `rework_notes`
 
 ---
@@ -65,11 +65,11 @@ export OLIST_DATA_PATH="/tmp/olist_data"
 ```python
 # Derive from notebook path
 # e.g. curriculum/.../week-03-.../01-wednesday/lecture-materials/week-03-wed-demo.ipynb
-# → .claude/cache/week-03-wed-demo-validation.json
+# → .pipeline-cache/week-03-wed-demo-validation.json
 import re
 week_str = f"week-{week:02d}"
 nb_name = Path(notebook_path).stem  # e.g. "week-03-wed-demo"
-output_path = f".claude/cache/{nb_name}-validation.json"
+output_path = f".pipeline-cache/{nb_name}-validation.json"  # nb_name e.g. "week-03-wed-demo"
 ```
 
 ## Step 2 — Run the validation script
@@ -78,7 +78,7 @@ output_path = f".claude/cache/{nb_name}-validation.json"
 python3 .claude/skills/python-content-generator/scripts/validate_notebook_cli.py \
   --notebook "<notebook_path>" \
   --week <N> \
-  --context ".claude/cache/week-NN-context.json" \
+  --context ".pipeline-cache/week-NN-context.json" \
   --output "<output_path>"
 ```
 
@@ -136,7 +136,7 @@ Print summary:
 or:
 ```
 ❌ Validation FAILED: week-03-wed-demo.ipynb
-   Failures: 2 | See: .claude/cache/week-03-wed-demo-validation.json
+   Failures: 2 | See: .pipeline-cache/week-03-wed-demo-validation.json
    Rework notes: 1. Cell 7 ('print(orders_df.shape)'): runtime_error — ...
 ```
 

@@ -68,7 +68,7 @@ If the argument is given, use it directly. Validate it is 1–8.
 
 ### Step 1 — Check for existing checkpoint
 
-Read `.claude/cache/week-NN-generation-state.json` if it exists.
+Read `.pipeline-cache/week-NN-generation-state.json` if it exists.
 
 If the checkpoint exists and `pipeline_status = "in_progress"`:
 - Print: "Resuming Week N from checkpoint. Completed: [list of validated notebooks]."
@@ -83,7 +83,7 @@ If no checkpoint, create a fresh one:
   "week_slug": "<slug>",
   "topic_name": "",
   "branch_name": "content/<slug>",
-  "context_bundle_path": ".claude/cache/week-NN-context.json",
+  "context_bundle_path": ".pipeline-cache/week-NN-context.json",
   "started_at": "<ISO timestamp>",
   "last_updated": "<ISO timestamp>",
   "pipeline_status": "in_progress",
@@ -126,7 +126,7 @@ If the branch already exists (resume): check it out and continue.
 Call `/python-week-context N`. This skill:
 - Reads `teaching-curriculum.md`
 - Extracts the week's section
-- Writes `.claude/cache/week-NN-context.json`
+- Writes `.pipeline-cache/week-NN-context.json`
 - Writes the per-week `teaching-curriculum.md` to the week folder
 
 Update `topic_name` in the checkpoint from the context bundle.
@@ -153,7 +153,7 @@ Spawn a Claude Opus 4.8 sub-agent to execute `/python-notebook-generate` with:
 - Week number
 - Day (`wed` or `thu`)
 - Notebook type (`demo`, `exercises`, or `solutions`)
-- Context bundle path: `.claude/cache/week-NN-context.json`
+- Context bundle path: `.pipeline-cache/week-NN-context.json`
 - Rework notes (if this is a retry): the `rework_notes` from the previous validation failure
 
 The sub-agent generates the notebook and writes it to the correct path.
@@ -248,7 +248,7 @@ When called from the Content Rework Routine with a PR number and rework instruct
 
 ## Checkpoint File
 
-**Path**: `.claude/cache/week-NN-generation-state.json` (gitignored)
+**Path**: `.pipeline-cache/week-NN-generation-state.json` (gitignored)
 
 Update this file after every state transition. The file enables:
 - Resume after timeout or interruption
@@ -257,7 +257,7 @@ Update this file after every state transition. The file enables:
 
 **Reset a week** (to force full regeneration):
 ```bash
-rm .claude/cache/week-NN-generation-state.json
+rm .pipeline-cache/week-NN-generation-state.json
 ```
 
 ---
