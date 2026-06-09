@@ -1,4 +1,10 @@
 """
+DEPRECATED — replaced by /python-content-generator skill (Claude Routines + Opus 4.8).
+This script used the DeepSeek v4-pro API and a Hermes cron job. It is retained as a
+local fallback only. Do not use for new content generation.
+
+---
+
 Main Content Generation Orchestrator
 
 Executes 15-step workflow:

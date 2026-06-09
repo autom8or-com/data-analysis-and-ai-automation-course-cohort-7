@@ -4,76 +4,43 @@
 
 | Item | Value |
 |---|---|
-| **Bot Token** | `TELEGRAM_BOT_TOKEN` in `.env` |
+| **Bot Token** | `TELEGRAM_BOT_TOKEN` (GitHub secret + Routine env var) |
 | **Reviewer Chat** | `TELEGRAM_REVIEWER_CHAT_ID` = `-1003902679807` (Personal Assistant group) |
 | **Content Pipeline Topic** | `CONTENT_PIPELINE_TOPIC_ID` = `67` (message_thread_id in Personal Assistant group) |
 | **Facilitators Group** | `TELEGRAM_GROUP_CHAT_ID` = `-1002312729680` |
 
-## Notification Flow (Two-Phase)
+---
 
-### Phase 1: Generation (Pipeline Steps 11c & 13)
+## Notification Flow
 
-Sent during content generation, before PR merge:
+### On git push to `content/week-*` → `content-publish.yml` GHA
 
-| Step | Event | Target | Purpose |
-|---|---|---|---|
-| 11c | PR Created | Content Pipeline topic (thread_id=67) | 📬 "PR Ready for Review — Week N" with link + merge/rework/close actions |
-| 13 | Pipeline Complete | Content Pipeline topic (thread_id=67) | ⚙️ "Pipeline Complete — waiting for your review" with status summary |
+Triggered automatically when the Routine pushes the branch (Step P5). Sends **one** notification to the reviewer group:
 
-### Phase 2: Publishing (GitHub Actions, post-merge)
+| Target | Message |
+|---|---|
+| Content Pipeline topic (thread_id=67) | 📬 "PR Ready for Review — Week N: Topic" with PR URL + `/approve`, `/rework`, `/reject` actions |
 
-Sent when you merge the PR:
+This fires only on the **first push** per branch (idempotent — skipped on rework re-pushes).
 
-| Trigger | Event | Target | Purpose |
-|---|---|---|---|
-| PR merged | Content Published | Facilitators group | 🎉 "Content Published! Solutions on Drive, NocoDB updated" |
+### On PR merge → `pr-notify.yml` GHA
 
-## PR Notification Template (Step 11c)
+| Target | Message |
+|---|---|
+| Facilitators group | 🎉 "Content Published — Week N is live" |
+| Content Pipeline topic | ✅ "Week N merged by [user]" |
 
-```
-📬 **PR Ready for Review — Week {N}**
+### On `/rework` → API trigger → Content Rework Routine
 
-**Topic:** {Topic Name}
-**Branch:** `content/week-NN-slug`
+No Telegram notification sent automatically during rework. The Routine commits to the same branch; `pr-notify.yml` fires on the `synchronize` event if configured.
 
-🔗 {PR URL}
+### On `/reject` → `pr-commands.yml` GHA
 
-**Actions:**
-• Merge to publish content to students
-• Comment `/rework` to request changes
-• Close to cancel
-```
+| Target | Message |
+|---|---|
+| Content Pipeline topic | ❌ "PR Rejected — branch deleted. Reason: [reason]" |
 
-## Pipeline Status Template (Step 13)
-
-```
-⚙️ **Phase 2a Python — Week {N} Pipeline Complete**
-
-**Topic:** {Topic Name}
-**Branch:** `content/week-NN-slug`
-
-✅ Content generated & PR created
-✅ Solutions uploaded to Google Drive
-
-⏳ *Waiting for your review and merge on GitHub*
-```
-
-## Rework Alert (Rework Comment Poller cron)
-
-Triggered by the rework poller (every 30 min) when `/rework <notes>` is found on an open PR:
-
-```
-🔄 **Rework Requested — PR #{N}**
-
-**Branch:** `content/week-NN-slug`
-**By:** {author}
-
-**Notes:** {rework notes}
-
-🔗 {PR URL}
-
-*Checking out branch and fixing now...*
-```
+---
 
 ## API Call Pattern
 
@@ -82,18 +49,20 @@ Triggered by the rework poller (every 30 min) when `/rework <notes>` is found on
 curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
   -d "chat_id=${REVIEWER_CHAT_ID}" \
   -d "message_thread_id=${TOPIC_ID}" \
-  -d "text=${MESSAGE}" \
-  -d "parse_mode=Markdown"
+  -d "parse_mode=Markdown" \
+  --data-urlencode "text=${MESSAGE}"
 
 # To Facilitators group (no thread_id)
 curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
   -d "chat_id=${GROUP_CHAT_ID}" \
-  -d "text=${MESSAGE}" \
-  -d "parse_mode=Markdown"
+  -d "parse_mode=Markdown" \
+  --data-urlencode "text=${MESSAGE}"
 ```
+
+---
 
 ## Notes
 
-- Bible quotes were removed from the pipeline (Step 13 is a status message, not a "published" celebration)
-- The GitHub Actions workflow (`pr-notify.yml`) handles the merge notification
-- All values are stored in `.env` at repo root AND as GitHub Actions secrets
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_REVIEWER_CHAT_ID`, `CONTENT_PIPELINE_TOPIC_ID` must be set in both the Routine environment AND as GitHub Actions secrets (used by `content-publish.yml` and `pr-commands.yml`)
+- `TELEGRAM_GROUP_CHAT_ID` is only needed as a GitHub Actions secret (used by `pr-notify.yml` post-merge)
+- The pipeline itself (Claude Routine) does **not** send Telegram directly — all notifications go through GHA workflows

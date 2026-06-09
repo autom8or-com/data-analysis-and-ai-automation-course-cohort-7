@@ -1,4 +1,10 @@
 """
+DEPRECATED — replaced by validate_notebook_cli.py.
+validate_notebook_cli.py is the current CLI tool called by the /python-notebook-validate
+skill. This file is retained as reference only.
+
+---
+
 Validation Orchestrator with Caching
 
 Executes notebook code cells against full Olist dataset.
