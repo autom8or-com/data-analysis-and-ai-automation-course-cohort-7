@@ -2,7 +2,7 @@
 Validation Cache Management
 
 Manages validation cache file with dataset hash checking.
-Cache location: .claude/cache/phase2a-validation-cache.json
+Cache location: .pipeline-cache/phase2a-validation-cache.json
 """
 
 import json

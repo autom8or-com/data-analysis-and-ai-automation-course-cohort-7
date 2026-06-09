@@ -11,7 +11,7 @@ description: >
 
 # Python Week Context Extractor
 
-Produces `.claude/cache/week-NN-context.json` — the single source of truth for one week's content generation. All downstream skills read from this bundle and must NOT re-read `teaching-curriculum.md` directly.
+Produces `.pipeline-cache/week-NN-context.json` — the single source of truth for one week's content generation. All downstream skills read from this bundle and must NOT re-read `teaching-curriculum.md` directly.
 
 ---
 
@@ -23,7 +23,7 @@ Produces `.claude/cache/week-NN-context.json` — the single source of truth for
 
 ## Outputs
 
-- `.claude/cache/week-NN-context.json` — full structured context bundle
+- `.pipeline-cache/week-NN-context.json` — full structured context bundle
 - `curriculum/phase-2a-python/weeks-01-08-teaching/<week-slug>/teaching-curriculum.md` — per-week extract committed with the content branch
 
 ---
@@ -119,7 +119,7 @@ For Weeks 3+, read `.claude/skills/python-content-generator/assets/data_loading.
 
 ### Step 5 — Write the context bundle
 
-Create `.claude/cache/` directory if it doesn't exist (it is gitignored). Write the bundle:
+Create `.pipeline-cache/` directory if it doesn't exist (it is gitignored). Write the bundle:
 
 ```json
 {
@@ -191,7 +191,7 @@ Format: preserve the original markdown structure from the master curriculum exac
 
 Print a summary:
 ```
-✅ Week N context bundle written to .claude/cache/week-NN-context.json
+✅ Week N context bundle written to .pipeline-cache/week-NN-context.json
    Wednesday: N objectives, N concepts
    Thursday:  N objectives, N concepts
    Olist tables: [list]
@@ -206,7 +206,7 @@ Print a summary:
 - **Missing teaching-curriculum.md**: abort with clear message (Step 1)
 - **Week N not found in curriculum**: print the headings found and ask to verify the week number
 - **Verified stats missing**: log warning, set empty dict — do not fabricate numbers
-- **Cache directory creation fails**: check permissions on `.claude/`
+- **Cache directory creation fails**: `mkdir -p .pipeline-cache/` — run manually if needed
 
 ---
 

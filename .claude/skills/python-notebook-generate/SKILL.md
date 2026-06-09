@@ -20,7 +20,7 @@ Generates one `.ipynb` file by expanding the curriculum context into a complete 
 - **Week number** (1–8)
 - **Day**: `wed` or `thu`
 - **Notebook type**: `demo`, `exercises`, or `solutions`
-- **Context bundle path**: `.claude/cache/week-NN-context.json`
+- **Context bundle path**: `.pipeline-cache/week-NN-context.json`
 - **Rework notes** (optional): string of specific improvements to make if regenerating
 
 ## Output
@@ -42,7 +42,7 @@ Day folder: `01-wednesday` or `02-thursday`
 
 ### Step 1 — Read the context bundle
 
-Read `.claude/cache/week-NN-context.json`. Extract the relevant day's section (`wednesday` or `thursday`). This is your complete specification — do not read `teaching-curriculum.md` directly.
+Read `.pipeline-cache/week-NN-context.json`. Extract the relevant day's section (`wednesday` or `thursday`). This is your complete specification — do not read `teaching-curriculum.md` directly.
 
 If rework notes are provided, read them carefully before generating. They are the primary specification for what to change.
 

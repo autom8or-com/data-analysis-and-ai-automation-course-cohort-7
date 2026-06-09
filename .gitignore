@@ -7,14 +7,13 @@ PROMPTS.md
 
 # Claude Code local settings
 .claude/settings.local.json
-.claude/phase2a-pipeline-state.json
-.claude/cache/
 
-# Claude Routines — per-week generation state and context bundles (machine-local)
-# These are written by /python-content-generator and /python-week-context skills
+# Pipeline cache — per-week generation state and context bundles (machine-local)
+# Written by /python-content-generator and /python-week-context skills
 # week-NN-generation-state.json  → per-notebook checkpoint
 # week-NN-context.json           → extracted curriculum bundle
 # week-NN-*-validation.json      → cell execution results
+.pipeline-cache/
 
 # Environment variables — never commit; share with co-teachers directly
 .env
