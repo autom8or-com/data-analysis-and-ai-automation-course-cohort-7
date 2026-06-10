@@ -55,6 +55,32 @@ Generates one complete week of Phase 2a Python content by chaining four speciali
 
 ---
 
+## Context Compression Recovery
+
+**If your context was compressed and you are resuming mid-pipeline**, do this immediately before anything else:
+
+```python
+import json
+# Find the active checkpoint
+import glob
+checkpoints = glob.glob(".pipeline-cache/week-*-generation-state.json")
+if checkpoints:
+    with open(sorted(checkpoints)[-1]) as f:
+        state = json.load(f)
+    week = state["week_number"]
+    slug = state["week_slug"]
+    pending = [k for k,v in state["notebooks"].items() if v["status"] != "validated"]
+    print(f"Resuming Week {week} ({slug}). Still to generate: {pending}")
+    # Check out the branch
+    import subprocess
+    subprocess.run(["git", "checkout", state["branch_name"]], check=True)
+    # Skip to Step 5 — generate remaining notebooks
+```
+
+Do NOT restart from Step 0 after a resume. The checkpoint is the authoritative source of pipeline state. Jump directly to generating the first notebook that is not `status: "validated"`.
+
+---
+
 ## Workflow
 
 ### Step 0 — Determine week number
@@ -130,6 +156,8 @@ Call `/python-week-context N`. This skill:
 - Writes the per-week `teaching-curriculum.md` to the week folder
 
 Update `topic_name` in the checkpoint from the context bundle.
+
+**After Step 3 completes, continue immediately to Step 4. Do not stop, summarise, or wait for input.**
 
 ### Step 4 — Install Python dependencies
 
