@@ -136,6 +136,8 @@ After creating Routine 2, copy its API URL and generate a token → add as GitHu
 
 **GitHub Routines note**: GitHub event triggers in Routines support only `pull_request` and `release` events — `issue_comment` (PR comments) is not supported. The API trigger pattern above is the correct approach for `/rework`.
 
+**Do NOT create the PR manually** during `/python-week-publish`. The `content-publish.yml` workflow creates the PR *and* sends the Telegram notification in the same job, triggered by the `git push`. If you create the PR via MCP before the workflow runs, the workflow detects the existing PR, skips PR creation, and skips the Telegram notification entirely. Always let the push trigger the workflow; verify the GHA run succeeded instead of creating the PR yourself.
+
 **Per-notebook checkpoint**: `.pipeline-cache/week-NN-generation-state.json` (gitignored). Saves after each of 6 notebooks is validated. Re-running the pipeline resumes from the last validated notebook.
 
 **Per-week curriculum extract**: each released week now contains a `teaching-curriculum.md` (just that week's section, committed with the content branch). The master `curriculum/phase-2a-python/teaching-curriculum.md` remains gitignored.
