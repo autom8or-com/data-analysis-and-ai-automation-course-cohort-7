@@ -76,14 +76,14 @@ jobs:
             '## Phase 2a Python — Week %s: %s\n**Programme Week:** %s of 16\n\n### Generated Content\n- ✅ Wednesday demo notebook\n- ✅ Wednesday exercises notebook\n- ✅ Thursday demo notebook\n- ✅ Thursday exercises notebook\n- ✅ 2 lesson plans (self-contained)\n- 📂 Solutions uploaded to Google Drive (gitignored)\n\n%s\n\n### Validation\nAll code cells validated by `validate_notebook_cli.py` before commit.\n\n### Review Commands\nPost a comment with one of:\n- `/approve` — merge and publish to students\n- `/rework [your feedback]` — AI revises notebooks based on your notes\n- `/reject [reason]` — close PR and delete branch' \
             "$WEEK" "$TOPIC" "$PROGRAMME_WEEK" "$REVIEW_NOTE")
 
-          PR_URL=$(gh pr create \
+          gh pr create \
             --title "Phase 2a Python — Week ${WEEK}: ${TOPIC}" \
             --body "$PR_BODY" \
             --base main \
-            --head "$BRANCH" \
-            --json url --jq '.url')
+            --head "$BRANCH"
 
           PR_NUMBER=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number')
+          PR_URL="https://github.com/${GITHUB_REPOSITORY}/pull/${PR_NUMBER}"
           echo "✅ PR created: ${PR_URL}"
 
           # Content links — lesson plans on the branch (visible before merge)
