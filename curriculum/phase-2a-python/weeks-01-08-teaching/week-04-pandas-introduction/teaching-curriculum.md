@@ -240,3 +240,4 @@ Submit `week4_assignment.ipynb`:
    What is the revenue of the #1 seller? *(Expected: R$229,472.63)*
 
 ---
+
