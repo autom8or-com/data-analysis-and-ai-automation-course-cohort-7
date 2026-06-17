@@ -46,6 +46,8 @@ All 6 notebooks must have `status: "validated"` or `status: "needs_human_review"
 
 ## Publishing Steps (in order)
 
+**CRITICAL — DO NOT STOP BETWEEN STEPS**: Execute all publishing steps (P1 through P9) in a single continuous run. After each step completes, immediately begin the next one. Do not write a response or end your turn between steps. Only write output at Step P9 (the final summary).
+
 Read the generation state file first. Skip any step whose key is already `true` in the `publishing` block.
 
 ### Step P1 — Update .gitignore
@@ -152,6 +154,8 @@ Common mistake to watch for:
 
 [context bundle.assignment_text — verbatim]
 ```
+
+**Tool to use**: Write the files using the `Write` tool directly — do NOT use Python subprocess, shell heredoc, or any shell redirection. Lesson plan content contains backticks and triple-quoted code blocks that break shell quoting. Build the full markdown string in memory and call Write once per file.
 
 Write to:
 - `curriculum/.../week-NN-slug/01-wednesday/lesson-plan.md`

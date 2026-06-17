@@ -56,7 +56,11 @@ fi
 export OLIST_DATA_PATH="/tmp/olist_data"
 ```
 
-**If download fails**: log the warning and fall back to syntax-only check (no execution). Do not abort the pipeline — a syntax pass with a drive-unavailable warning is better than a full stop.
+**If download fails**: Check whether the error is a file-size/quota issue (common: the 45 MB Olist zip exceeds the Drive MCP 10 MB download limit). If so — or for any download failure — proceed as follows:
+1. Run structure check and syntax check only (skip nbconvert execution).
+2. If both pass, write the validation report with `"status": "pass"` and add `"skipped_execution": true, "skipped_execution_reason": "Olist data unavailable — Drive MCP download limit"` to the report JSON.
+3. Update the generation state checkpoint to `"validated"` as normal.
+4. Log a warning but **do not abort the pipeline** — a syntax-and-structure pass is sufficient to continue.
 
 ---
 
@@ -123,9 +127,11 @@ with open(state_path, "w") as f:
 
 ## Step 5 — Return result to orchestrator
 
-If `status == "pass"`: report success. Done.
+**Do not end your turn here.** Return the result to the orchestrator and let it immediately continue the notebook loop. Do not write a standalone summary response — print only the one-line status below, then control returns to the orchestrator.
 
-If `status == "fail"`: return the `rework_notes` string to the orchestrator. The orchestrator will either:
+If `status == "pass"`: print the one-line pass summary below. The orchestrator will immediately proceed to the next notebook.
+
+If `status == "fail"`: print the one-line fail summary below and return the `rework_notes` string. The orchestrator will either:
 - Re-spawn `/python-notebook-generate` with `rework_notes` injected (first failure)
 - Flag as `needs_human_review` (second failure)
 
