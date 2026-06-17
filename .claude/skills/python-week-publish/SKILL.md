@@ -226,6 +226,13 @@ Use the Google Drive MCP tools to complete these steps:
    - Upload with `contentMimeType: "application/vnd.jupyter.notebook"` and `disableConversionToGoogleType: true`
    - Repeat for `02-thursday/solutions/` → `thursday-solutions` folder
 
+4. **Write the week Drive folder URL to a committed file** so the GitHub Actions notification can link directly to the week subfolder (not the parent):
+   ```bash
+   echo "https://drive.google.com/drive/folders/<WEEK_FOLDER_ID>" \
+     > curriculum/phase-2a-python/weeks-01-08-teaching/${SLUG}/.drive-solutions-url
+   ```
+   Replace `<WEEK_FOLDER_ID>` with the actual ID of the week subfolder (the one named `Week NN - <Topic>`). Then `git add` this file in Step P5 (or stage and amend the commit if P5 already ran). This file is intentionally committed — it is NOT in solutions/ so it is not gitignored.
+
 If any MCP call fails: log the warning and continue. The PR is already created — Drive upload is recoverable.
 
 Checkpoint: set `publishing.drive_uploaded = true`, `publishing.drive_folder = "Week NN - <Topic>"`
