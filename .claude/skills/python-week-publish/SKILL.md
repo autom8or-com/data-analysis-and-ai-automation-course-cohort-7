@@ -208,20 +208,22 @@ Checkpoint: set `publishing.pr_created = "handled_by_gha"`
 
 Solutions are gitignored — Google Drive is the only permanent storage.
 
-**Prerequisites**: The Google Drive MCP connector must be added to this Routine's connectors at `claude.ai/code/routines`. The `GDRIVE_PHASE2A_FOLDER_ID` environment variable must be set in the Routine's environment (the Drive folder ID of the Phase 2a solutions parent folder).
+**Prerequisites**: The Google Drive MCP connector must be added to this Routine's connectors at `claude.ai/code/routines`.
+
+**Parent folder**: Always use folder ID `1z1MQA7OCfL1aqtdTf_xFaAaVPs_avxh3` as the parent — do NOT read this from an environment variable, this is the fixed Phase 2a solutions folder.
 
 Use the Google Drive MCP tools to complete these steps:
 
-1. **Find or create the week subfolder** inside the Phase 2a parent folder (`GDRIVE_PHASE2A_FOLDER_ID`):
-   - Target folder name: `Week NN - <Topic Name>` (e.g. `Week 02 - Collections & Control Flow`)
-   - Search for an existing folder with that name under the parent ID
-   - If not found, create it
+1. **Find or create the week subfolder** inside folder `1z1MQA7OCfL1aqtdTf_xFaAaVPs_avxh3`:
+   - Target folder name: `Week NN - <Topic Name>` (e.g. `Week 04 - Pandas Introduction`)
+   - Use `mcp__Google-Drive__search_files` to find an existing folder with that name and parent ID
+   - If not found, create it with `mcp__Google-Drive__create_file` (mimeType: `application/vnd.google-apps.folder`)
 
 2. **Find or create** `wednesday-solutions` and `thursday-solutions` sub-folders inside the week folder
 
-3. **Upload each solution notebook** using the MCP create/upload tool:
-   - Read each `.ipynb` file from `curriculum/.../week-NN-slug/01-wednesday/solutions/`
-   - Upload to the `wednesday-solutions` folder
+3. **Upload each solution notebook** using `mcp__Google-Drive__create_file`:
+   - Read each `.ipynb` file from `curriculum/.../week-NN-slug/01-wednesday/solutions/` as base64
+   - Upload with `contentMimeType: "application/vnd.jupyter.notebook"` and `disableConversionToGoogleType: true`
    - Repeat for `02-thursday/solutions/` → `thursday-solutions` folder
 
 If any MCP call fails: log the warning and continue. The PR is already created — Drive upload is recoverable.

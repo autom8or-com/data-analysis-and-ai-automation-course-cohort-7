@@ -46,7 +46,7 @@ Load the order items dataset, use `.describe()` for numeric stats, add calculate
 - `price` mean=120.65, max=6,735.00, min=0.85
 - `freight_value` mean=19.99, max=409.68
 - `total_cost` mean=140.64, sum=R$15,843,553.24
-- `price_tier`: Economy=73,397 | Standard=30,760 | Premium=8,493
+- `price_tier`: Economy=72,165 | Standard=37,246 | Premium=3,239
 
 ---
 
@@ -69,9 +69,9 @@ Using `olist_order_items_dataset.csv` (already loaded as `items`):
 1. Total revenue (sum of `price` column). Expected: **R$13,591,643.70**
 2. Total freight collected. Expected: **R$2,251,909.54**
 3. Add a `revenue_share` column = `price / total_revenue * 100` (each item's % of total)
-4. How many items are in the "Premium" tier (`price >= R$500`)? Expected: **8,493**
+4. How many items are in the "Premium" tier (`price >= R$500`)? Expected: **3,239**
 5. Which order has the most items? Hint: `groupby order_id`, count `order_item_id`, `nlargest(1)`. Expected: **max = 21**
-6. Average freight as % of price? Expected: **~20%**
+6. Average freight as % of price? Expected: **~32%**
 
 All expected outputs verified against the actual Olist dataset.
 
@@ -91,7 +91,7 @@ Submit `week4_assignment.ipynb` before the next session:
 3. From the items DataFrame:
    - Add a `total_cost` column (price + freight_value)
    - Add a `price_tier` column: Premium (≥500), Standard (≥100), Economy (<100)
-   - Count each tier *(Expected: Economy=73,397 / Standard=30,760 / Premium=8,493)*
+   - Count each tier *(Expected: Economy=72,165 / Standard=37,246 / Premium=3,239)*
 
 4. Find the top 5 sellers by total revenue (sum of price, grouped by seller_id).
    Revenue of the #1 seller? *(Expected: R$229,472.63)*

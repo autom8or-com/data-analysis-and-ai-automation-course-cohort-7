@@ -34,33 +34,34 @@ For Weeks 1–2, skip this step entirely.
 
 For Weeks 3–8: the validation script executes notebook code that reads Olist CSVs. The data must be on disk before running the script.
 
-Check if `/tmp/olist_data/` already exists and contains CSV files (a previous notebook in the same run may have already downloaded it):
+**Primary source — local zip** (always try this first):
 
 ```bash
 if [ -d "/tmp/olist_data" ] && [ -n "$(ls /tmp/olist_data/*.csv 2>/dev/null)" ]; then
   echo "Olist data already available at /tmp/olist_data"
 else
-  echo "Downloading Olist dataset from Google Drive..."
-  mkdir -p /tmp/olist_data
-
-  # Use Google Drive MCP tools to:
-  # 1. Search for file named "phase-2-python-sql.zip" in folder GDRIVE_OLIST_FOLDER_ID
-  # 2. Download it to /tmp/phase-2-python-sql.zip
-  # 3. Extract: unzip -q /tmp/phase-2-python-sql.zip -d /tmp/olist_data/
-  # 4. Verify: ls /tmp/olist_data/ shows CSV files
-
-  unzip -q /tmp/phase-2-python-sql.zip -d /tmp/olist_data/
-  echo "✅ Olist data extracted to /tmp/olist_data/"
+  LOCAL_ZIP="datasets/phase-2-python-sql.zip"
+  if [ -f "$LOCAL_ZIP" ]; then
+    echo "Extracting Olist data from local zip..."
+    mkdir -p /tmp/olist_data
+    unzip -q "$LOCAL_ZIP" -d /tmp/olist_data/
+    echo "✅ Olist data extracted to /tmp/olist_data/"
+  else
+    echo "ERROR: datasets/phase-2-python-sql.zip not found — cannot validate execution"
+    # Fall back to syntax-only check (see below)
+  fi
 fi
 
 export OLIST_DATA_PATH="/tmp/olist_data"
 ```
 
-**If download fails**: Check whether the error is a file-size/quota issue (common: the 45 MB Olist zip exceeds the Drive MCP 10 MB download limit). If so — or for any download failure — proceed as follows:
+Do NOT use Google Drive MCP to download the zip — the file is 45 MB and exceeds the 10 MB Drive MCP download limit. The local zip at `datasets/phase-2-python-sql.zip` is the canonical source.
+
+**If the local zip is missing** (e.g. in a fresh container without the repo): proceed as follows:
 1. Run structure check and syntax check only (skip nbconvert execution).
-2. If both pass, write the validation report with `"status": "pass"` and add `"skipped_execution": true, "skipped_execution_reason": "Olist data unavailable — Drive MCP download limit"` to the report JSON.
+2. If both pass, write the validation report with `"status": "pass"` and add `"skipped_execution": true, "skipped_execution_reason": "datasets/phase-2-python-sql.zip not found"` to the report JSON.
 3. Update the generation state checkpoint to `"validated"` as normal.
-4. Log a warning but **do not abort the pipeline** — a syntax-and-structure pass is sufficient to continue.
+4. Log a warning but **do not abort the pipeline**.
 
 ---
 
