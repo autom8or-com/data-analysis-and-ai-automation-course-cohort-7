@@ -169,6 +169,8 @@ Required for the validation step. Run once; skip if already installed.
 
 ### Step 5 — Generate and validate 6 notebooks
 
+**CRITICAL — DO NOT STOP BETWEEN NOTEBOOKS**: This is a loop over 6 notebooks. After each notebook's generate–validate cycle completes, immediately begin the next one. Do not write a response, summarise progress, or end your turn between notebooks. Do not stop until all 6 notebooks have `status: "validated"` or `status: "needs_human_review"`. Only write output when the entire loop is done and you are ready to call Step 6.
+
 Process notebooks in this order: `wed-demo`, `wed-exercises`, `wed-solutions`, `thu-demo`, `thu-exercises`, `thu-solutions`.
 
 For each notebook that is NOT already `status: "validated"`:
@@ -217,7 +219,7 @@ Read the validation report.
 
 ### Step 6 — Publish
 
-When all 6 notebooks are `validated` or `needs_human_review`, call `/python-week-publish N`.
+**Continue immediately from Step 5 without ending your turn.** When all 6 notebooks are `validated` or `needs_human_review`, call `/python-week-publish N`.
 
 This skill handles all remaining ops: gitignore, lesson plans, git commit, PR creation, Drive upload, Telegram.
 

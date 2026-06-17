@@ -93,7 +93,12 @@ jobs:
           WEEK_PADDED=$(printf "%02d" "$WEEK")
           WED_COLAB="https://colab.research.google.com/github/${REPO}/blob/${BRANCH}/${WEEK_PATH}/01-wednesday/lecture-materials/week-${WEEK_PADDED}-wed-demo.ipynb"
           THU_COLAB="https://colab.research.google.com/github/${REPO}/blob/${BRANCH}/${WEEK_PATH}/02-thursday/lecture-materials/week-${WEEK_PADDED}-thu-demo.ipynb"
-          DRIVE_URL="https://drive.google.com/drive/folders/${{ vars.GDRIVE_PHASE2A_FOLDER_ID }}"
+          DRIVE_URL_FILE="${WEEK_PATH}/.drive-solutions-url"
+          if [ -f "$DRIVE_URL_FILE" ]; then
+            DRIVE_URL=$(cat "$DRIVE_URL_FILE")
+          else
+            DRIVE_URL="https://drive.google.com/drive/folders/${{ vars.GDRIVE_PHASE2A_FOLDER_ID }}"
+          fi
 
           REVIEW_LINE=""
           [ -n "$REVIEW_NOTE" ] && REVIEW_LINE=$(printf '\n&#9888;&#65039; %s' "$REVIEW_NOTE")
