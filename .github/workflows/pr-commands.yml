@@ -20,9 +20,9 @@ jobs:
       github.event.issue.pull_request != null &&
       startsWith(github.event.issue.title, 'Phase 2a Python') &&
       (
-        contains(github.event.comment.body, '/approve') ||
-        contains(github.event.comment.body, '/reject') ||
-        contains(github.event.comment.body, '/rework')
+        startsWith(github.event.comment.body, '/approve') ||
+        startsWith(github.event.comment.body, '/reject') ||
+        startsWith(github.event.comment.body, '/rework')
       )
     runs-on: ubuntu-latest
     permissions:
@@ -42,7 +42,7 @@ jobs:
 
       # ── /approve — squash merge and delete branch ─────────────
       - name: Handle /approve
-        if: contains(github.event.comment.body, '/approve')
+        if: startsWith(github.event.comment.body, '/approve')
         env:
           PR_NUMBER: ${{ github.event.issue.number }}
           ACTOR: ${{ github.event.comment.user.login }}
@@ -61,7 +61,7 @@ jobs:
 
       # ── /reject — close PR + delete branch + Telegram ─────────
       - name: Handle /reject
-        if: contains(github.event.comment.body, '/reject')
+        if: startsWith(github.event.comment.body, '/reject')
         env:
           PR_NUMBER: ${{ github.event.issue.number }}
           ACTOR: ${{ github.event.comment.user.login }}
@@ -97,9 +97,9 @@ jobs:
       # ── /rework — call Claude Routine API endpoint ────────────
       - name: Handle /rework
         if: |
-          contains(github.event.comment.body, '/rework') &&
-          !contains(github.event.comment.body, '/approve') &&
-          !contains(github.event.comment.body, '/reject')
+          startsWith(github.event.comment.body, '/rework') &&
+          !startsWith(github.event.comment.body, '/approve') &&
+          !startsWith(github.event.comment.body, '/reject')
         env:
           PR_NUMBER: ${{ github.event.issue.number }}
           ACTOR: ${{ github.event.comment.user.login }}
@@ -160,9 +160,9 @@ jobs:
           REPO: ${{ github.repository }}
         shell: bash
         run: |
-          if echo "$COMMENT_BODY" | grep -q '/approve'; then
+          if echo "$COMMENT_BODY" | grep -qE '^/approve'; then
             EMOJI="rocket"
-          elif echo "$COMMENT_BODY" | grep -q '/rework'; then
+          elif echo "$COMMENT_BODY" | grep -qE '^/rework'; then
             EMOJI="wrench"
           else
             EMOJI="x"
