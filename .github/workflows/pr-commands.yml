@@ -9,13 +9,39 @@ name: PR Commands — Phase 2a Content Review
 #             Requires REWORK_ROUTINE_URL and REWORK_ROUTINE_TOKEN secrets.
 #             (GitHub event triggers in Routines do not support issue_comment events;
 #              the API trigger pattern is the correct approach.)
+#
+# ── Why this workflow has a separate `gate` job ───────────────────────────────
+# These commands are DESTRUCTIVE (merge / close / dispatch) and run with a
+# privileged PAT, so the commenter's own GitHub permissions are NOT enforced by
+# GitHub — the PAT acts regardless of who commented. We must enforce two things
+# ourselves, structurally, so that no comment can trigger a command by accident:
+#
+#   1. EXACT SHAPE — the command must be the first whitespace-delimited token of
+#      the FIRST LINE of the comment. Prose, headings, bullet lists, quoted
+#      replies, or any text that merely *mentions* `/approve` cannot match.
+#      (A substring/`contains` or even `startsWith` check is not enough: an
+#      automated summary that documents the commands, or a comment that begins
+#      "/approve was used last week…", would still fire.)
+#
+#   2. REAL AUTHORIZATION — the commenter must be a human (not a Bot account)
+#      with write/admin access, verified live against the repo. This closes the
+#      hole where ANY commenter (a student with read access, the pipeline bot,
+#      an external drive-by) could merge simply by typing the command.
+#
+# The `gate` job emits `command` (empty unless BOTH checks pass) and `argument`.
+# The `run-command` job acts only when `gate.outputs.command` is non-empty.
 
 on:
   issue_comment:
     types: [created]
 
 jobs:
-  handle-command:
+  # ── Gate: parse the command shape + authorize the commenter ───────
+  gate:
+    # Cheap pre-filter only — the authoritative checks happen in the step below.
+    # `contains` here just avoids spinning a runner for ordinary chit-chat; it is
+    # deliberately NOT trusted as the trigger (the incident comment would pass
+    # this pre-filter and then be rejected by the exact-shape + auth checks).
     if: |
       github.event.issue.pull_request != null &&
       startsWith(github.event.issue.title, 'Phase 2a Python') &&
@@ -25,13 +51,86 @@ jobs:
         contains(github.event.comment.body, '/rework')
       )
     runs-on: ubuntu-latest
+    outputs:
+      command: ${{ steps.gate.outputs.command }}
+      argument: ${{ steps.gate.outputs.argument }}
+    env:
+      GH_TOKEN: ${{ secrets.CONTENT_PIPELINE_PAT }}
+    steps:
+      - name: Parse command shape and authorize commenter
+        id: gate
+        env:
+          BODY: ${{ github.event.comment.body }}
+          ACTOR: ${{ github.event.comment.user.login }}
+          ACTOR_TYPE: ${{ github.event.comment.user.type }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -eu
+
+          # Default: no command. Any rejection path below leaves this empty,
+          # so the run-command job is skipped.
+          echo "command=" >> "$GITHUB_OUTPUT"
+
+          # ── 1. Exact shape: first token of the FIRST line, no pipes ──
+          # Strip everything from the first newline onward, then a trailing CR.
+          FIRST_LINE="${BODY%%$'\n'*}"
+          FIRST_LINE="${FIRST_LINE%$'\r'}"
+          # Split first line into <token> <rest>. read collapses leading spaces.
+          read -r FIRST_TOKEN ARG <<< "$FIRST_LINE" || true
+
+          case "$FIRST_TOKEN" in
+            /approve) CMD="approve" ;;
+            /reject)  CMD="reject"  ;;
+            /rework)  CMD="rework"  ;;
+            *)
+              echo "::notice::No leading slash-command on the first line — ignoring."
+              exit 0
+              ;;
+          esac
+
+          # ── 2. Authorization: human with write/admin, never a Bot ────
+          if [ "${ACTOR_TYPE:-User}" = "Bot" ]; then
+            echo "::notice::Ignoring /${CMD} from bot account '${ACTOR}' — bots cannot issue review commands."
+            exit 0
+          fi
+
+          PERM=$(gh api "repos/${REPO}/collaborators/${ACTOR}/permission" \
+                   --jq '.permission' 2>/dev/null || echo "none")
+          case "$PERM" in
+            admin|write)
+              echo "::notice::/${CMD} authorized for '${ACTOR}' (permission: ${PERM})."
+              ;;
+            *)
+              echo "::notice::Ignoring /${CMD} from '${ACTOR}' — insufficient permission (${PERM}). Requires write or admin."
+              exit 0
+              ;;
+          esac
+
+          # ── Both checks passed: emit the command and its argument ────
+          # Overwrite the earlier empty `command=` with the real value.
+          echo "command=${CMD}" >> "$GITHUB_OUTPUT"
+          {
+            echo "argument<<__PR_CMD_ARG__"
+            echo "${ARG}"
+            echo "__PR_CMD_ARG__"
+          } >> "$GITHUB_OUTPUT"
+
+  # ── Run: act only when the gate authorized a real command ─────────
+  run-command:
+    needs: gate
+    if: needs.gate.outputs.command != ''
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
       issues: write
-
     env:
       GH_TOKEN: ${{ secrets.CONTENT_PIPELINE_PAT }}
+      PR_NUMBER: ${{ github.event.issue.number }}
+      ACTOR: ${{ github.event.comment.user.login }}
+      COMMAND: ${{ needs.gate.outputs.command }}
+      ARGUMENT: ${{ needs.gate.outputs.argument }}
 
     steps:
       - name: Checkout repo
@@ -41,11 +140,8 @@ jobs:
           token: ${{ secrets.CONTENT_PIPELINE_PAT }}
 
       # ── /approve — squash merge and delete branch ─────────────
-      - name: Handle /approve
-        if: contains(github.event.comment.body, '/approve')
-        env:
-          PR_NUMBER: ${{ github.event.issue.number }}
-          ACTOR: ${{ github.event.comment.user.login }}
+      - name: Handle approve
+        if: needs.gate.outputs.command == 'approve'
         shell: bash
         run: |
           TITLE=$(gh pr view "$PR_NUMBER" --json title --jq '.title')
@@ -60,21 +156,13 @@ jobs:
           echo "✅ PR #${PR_NUMBER} merged and branch deleted by ${ACTOR}"
 
       # ── /reject — close PR + delete branch + Telegram ─────────
-      - name: Handle /reject
-        if: contains(github.event.comment.body, '/reject')
-        env:
-          PR_NUMBER: ${{ github.event.issue.number }}
-          ACTOR: ${{ github.event.comment.user.login }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
+      - name: Handle reject
+        if: needs.gate.outputs.command == 'reject'
         shell: bash
         run: |
           BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName --jq '.headRefName')
 
-          REASON=$(echo "$COMMENT_BODY" \
-            | grep -o '/reject.*' \
-            | sed 's|/reject[[:space:]]*||' \
-            | head -1)
-          REASON="${REASON:-No reason given}"
+          REASON="${ARGUMENT:-No reason given}"
 
           echo "Rejecting PR #${PR_NUMBER} on branch ${BRANCH}. Reason: ${REASON}"
 
@@ -95,25 +183,14 @@ jobs:
             || echo "Telegram notification failed (non-blocking)"
 
       # ── /rework — call Claude Routine API endpoint ────────────
-      - name: Handle /rework
-        if: |
-          contains(github.event.comment.body, '/rework') &&
-          !contains(github.event.comment.body, '/approve') &&
-          !contains(github.event.comment.body, '/reject')
-        env:
-          PR_NUMBER: ${{ github.event.issue.number }}
-          ACTOR: ${{ github.event.comment.user.login }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
+      - name: Handle rework
+        if: needs.gate.outputs.command == 'rework'
         shell: bash
         run: |
           BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName --jq '.headRefName')
           TITLE=$(gh pr view "$PR_NUMBER" --json title --jq '.title')
 
-          INSTRUCTIONS=$(echo "$COMMENT_BODY" \
-            | grep -o '/rework.*' \
-            | sed 's|/rework[[:space:]]*||' \
-            | head -1)
-          INSTRUCTIONS="${INSTRUCTIONS:-No specific instructions provided — apply general quality improvements}"
+          INSTRUCTIONS="${ARGUMENT:-No specific instructions provided — apply general quality improvements}"
 
           echo "Dispatching /rework for PR #${PR_NUMBER} (${BRANCH}) to Claude Routine..."
 
@@ -156,17 +233,14 @@ jobs:
         if: always()
         env:
           COMMENT_ID: ${{ github.event.comment.id }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
           REPO: ${{ github.repository }}
         shell: bash
         run: |
-          if echo "$COMMENT_BODY" | grep -q '/approve'; then
-            EMOJI="rocket"
-          elif echo "$COMMENT_BODY" | grep -q '/rework'; then
-            EMOJI="wrench"
-          else
-            EMOJI="x"
-          fi
+          case "$COMMAND" in
+            approve) EMOJI="rocket" ;;
+            rework)  EMOJI="wrench" ;;
+            *)       EMOJI="x" ;;
+          esac
 
           gh api \
             "repos/${REPO}/issues/comments/${COMMENT_ID}/reactions" \
