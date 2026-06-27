@@ -55,6 +55,32 @@ Generates one complete week of Phase 2a Python content by chaining four speciali
 
 ---
 
+## Context Compression Recovery
+
+**If your context was compressed and you are resuming mid-pipeline**, do this immediately before anything else:
+
+```python
+import json
+# Find the active checkpoint
+import glob
+checkpoints = glob.glob(".pipeline-cache/week-*-generation-state.json")
+if checkpoints:
+    with open(sorted(checkpoints)[-1]) as f:
+        state = json.load(f)
+    week = state["week_number"]
+    slug = state["week_slug"]
+    pending = [k for k,v in state["notebooks"].items() if v["status"] != "validated"]
+    print(f"Resuming Week {week} ({slug}). Still to generate: {pending}")
+    # Check out the branch
+    import subprocess
+    subprocess.run(["git", "checkout", state["branch_name"]], check=True)
+    # Skip to Step 5 — generate remaining notebooks
+```
+
+Do NOT restart from Step 0 after a resume. The checkpoint is the authoritative source of pipeline state. Jump directly to generating the first notebook that is not `status: "validated"`.
+
+---
+
 ## Workflow
 
 ### Step 0 — Determine week number
@@ -131,6 +157,8 @@ Call `/python-week-context N`. This skill:
 
 Update `topic_name` in the checkpoint from the context bundle.
 
+**After Step 3 completes, continue immediately to Step 4. Do not stop, summarise, or wait for input.**
+
 ### Step 4 — Install Python dependencies
 
 ```bash
@@ -140,6 +168,8 @@ pip install nbformat nbconvert jupyter_client ipykernel -q
 Required for the validation step. Run once; skip if already installed.
 
 ### Step 5 — Generate and validate 6 notebooks
+
+**CRITICAL — DO NOT STOP BETWEEN NOTEBOOKS**: This is a loop over 6 notebooks. After each notebook's generate–validate cycle completes, immediately begin the next one. Do not write a response, summarise progress, or end your turn between notebooks. Do not stop until all 6 notebooks have `status: "validated"` or `status: "needs_human_review"`. Only write output when the entire loop is done and you are ready to call Step 6.
 
 Process notebooks in this order: `wed-demo`, `wed-exercises`, `wed-solutions`, `thu-demo`, `thu-exercises`, `thu-solutions`.
 
@@ -189,7 +219,7 @@ Read the validation report.
 
 ### Step 6 — Publish
 
-When all 6 notebooks are `validated` or `needs_human_review`, call `/python-week-publish N`.
+**Continue immediately from Step 5 without ending your turn.** When all 6 notebooks are `validated` or `needs_human_review`, call `/python-week-publish N`.
 
 This skill handles all remaining ops: gitignore, lesson plans, git commit, PR creation, Drive upload, Telegram.
 

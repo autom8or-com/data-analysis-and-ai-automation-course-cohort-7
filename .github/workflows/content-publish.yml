@@ -76,14 +76,14 @@ jobs:
             '## Phase 2a Python — Week %s: %s\n**Programme Week:** %s of 16\n\n### Generated Content\n- ✅ Wednesday demo notebook\n- ✅ Wednesday exercises notebook\n- ✅ Thursday demo notebook\n- ✅ Thursday exercises notebook\n- ✅ 2 lesson plans (self-contained)\n- 📂 Solutions uploaded to Google Drive (gitignored)\n\n%s\n\n### Validation\nAll code cells validated by `validate_notebook_cli.py` before commit.\n\n### Review Commands\nPost a comment with one of:\n- `/approve` — merge and publish to students\n- `/rework [your feedback]` — AI revises notebooks based on your notes\n- `/reject [reason]` — close PR and delete branch' \
             "$WEEK" "$TOPIC" "$PROGRAMME_WEEK" "$REVIEW_NOTE")
 
-          PR_URL=$(gh pr create \
+          gh pr create \
             --title "Phase 2a Python — Week ${WEEK}: ${TOPIC}" \
             --body "$PR_BODY" \
             --base main \
-            --head "$BRANCH" \
-            --json url --jq '.url')
+            --head "$BRANCH"
 
           PR_NUMBER=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number')
+          PR_URL="https://github.com/${GITHUB_REPOSITORY}/pull/${PR_NUMBER}"
           echo "✅ PR created: ${PR_URL}"
 
           # Content links — lesson plans on the branch (visible before merge)
@@ -93,7 +93,12 @@ jobs:
           WEEK_PADDED=$(printf "%02d" "$WEEK")
           WED_COLAB="https://colab.research.google.com/github/${REPO}/blob/${BRANCH}/${WEEK_PATH}/01-wednesday/lecture-materials/week-${WEEK_PADDED}-wed-demo.ipynb"
           THU_COLAB="https://colab.research.google.com/github/${REPO}/blob/${BRANCH}/${WEEK_PATH}/02-thursday/lecture-materials/week-${WEEK_PADDED}-thu-demo.ipynb"
-          DRIVE_URL="https://drive.google.com/drive/folders/${{ vars.GDRIVE_PHASE2A_FOLDER_ID }}"
+          DRIVE_URL_FILE="${WEEK_PATH}/.drive-solutions-url"
+          if [ -f "$DRIVE_URL_FILE" ]; then
+            DRIVE_URL=$(cat "$DRIVE_URL_FILE")
+          else
+            DRIVE_URL="https://drive.google.com/drive/folders/${{ vars.GDRIVE_PHASE2A_FOLDER_ID }}"
+          fi
 
           REVIEW_LINE=""
           [ -n "$REVIEW_NOTE" ] && REVIEW_LINE=$(printf '\n&#9888;&#65039; %s' "$REVIEW_NOTE")

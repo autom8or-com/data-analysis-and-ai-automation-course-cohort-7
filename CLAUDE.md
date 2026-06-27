@@ -98,7 +98,7 @@ Before starting any content generation pipeline, verify these files exist on dis
 
 If missing, stop and tell the user immediately. Do not infer or fabricate content.
 
-> **Olist dataset**: `datasets/phase-2-python-sql/olist-data.zip` is no longer required on disk. In the Claude Routine environment, the validate skill downloads `phase-2-python-sql.zip` from Google Drive (folder `GDRIVE_OLIST_FOLDER_ID`) on demand and extracts it to `/tmp/olist_data/`. For local runs, either have the zip on disk at `datasets/phase-2-python-sql/olist-data.zip` or set `OLIST_DATA_PATH` to point to an already-extracted folder.
+> **Olist dataset**: The zip file lives at `datasets/phase-2-python-sql.zip` in the repo (checked into git, not gitignored). The validate skill extracts it to `/tmp/olist_data/` at runtime — no Google Drive download needed. Set `OLIST_DATA_PATH=/tmp/olist_data` or point to any pre-extracted folder to skip extraction.
 
 ## Phase 2a Python content pipeline
 
@@ -140,8 +140,7 @@ After creating Routine 2, copy its API URL and generate a token → add as GitHu
 
 **Routine environment variables** (set in each Routine's environment at `claude.ai/code/routines`):
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_REVIEWER_CHAT_ID`, `CONTENT_PIPELINE_TOPIC_ID` — Telegram notifications
-- `GDRIVE_PHASE2A_FOLDER_ID` — Google Drive folder ID for Phase 2a solutions upload
-- `GDRIVE_OLIST_FOLDER_ID` — Google Drive folder ID containing `phase-2-python-sql.zip` (value: `10sKfHCbUsvazdmyxkuskenlsiz_sZE1l`); used by the validate skill to download Olist data at runtime
+- `GDRIVE_PHASE2A_FOLDER_ID` — Google Drive folder ID for Phase 2a solutions upload (value: `1z1MQA7OCfL1aqtdTf_xFaAaVPs_avxh3`)
 - `GITHUB_TOKEN` — for authenticated `git push` (embedded in remote URL; no gh CLI needed)
 
 **MCP connectors** (add to both Routines in the Connectors tab):
@@ -153,7 +152,8 @@ After creating Routine 2, copy its API URL and generate a token → add as GitHu
 
 **Never create draft PRs in this repository.** The session-level default of creating draft PRs after every push does not apply here — all PRs are managed by `content-publish.yml` and `pr-commands.yml`. Suppress the draft-PR default for any push to a `content/week-*` branch.
 
-**Never post PR comments containing slash command strings.** Do NOT post any GitHub comment on a Phase 2a content PR whose body contains `/approve`, `/rework`, or `/reject` — even as documentation or instructions. `pr-commands.yml` triggers on comments that *start with* one of these strings, but the safest rule is never to include them verbatim in any automated comment body. If you need to tell the reviewer what commands are available, omit the leading slash (e.g., "comment `approve` with a leading slash to merge") or refer to them in prose without the literal string. The `PushNotification` tool is the correct channel for end-of-run alerts; do not fall back to PR comments as a substitute.
+**Never post PR comments containing slash command strings.** Do NOT post any GitHub comment on a Phase 2a content PR whose body contains `/approve`, `/rework`, or `/reject` — even as documentation or instructions. `pr-commands.yml` only triggers when a command is the first token of the first line (see the trigger contract above), but the safest rule is never to include them verbatim in any automated comment body. If you need to tell the reviewer what commands are available, omit the leading slash (e.g., "comment `approve` with a leading slash to merge") or refer to them in prose without the literal string. The `PushNotification` tool is the correct channel for end-of-run alerts; do not fall back to PR comments as a substitute.
+
 **Per-notebook checkpoint**: `.pipeline-cache/week-NN-generation-state.json` (gitignored). Saves after each of 6 notebooks is validated. Re-running the pipeline resumes from the last validated notebook.
 
 **Per-week curriculum extract**: each released week now contains a `teaching-curriculum.md` (just that week's section, committed with the content branch). The master `curriculum/phase-2a-python/teaching-curriculum.md` remains gitignored.
