@@ -22,7 +22,7 @@ products = pd.read_csv(os.path.join(olist_path, 'olist_products_dataset.csv'))
 reviews = pd.read_csv(os.path.join(olist_path, 'olist_order_reviews_dataset.csv'))
 payments = pd.read_csv(os.path.join(olist_path, 'olist_order_payments_dataset.csv'))
 sellers = pd.read_csv(os.path.join(olist_path, 'olist_sellers_dataset.csv'))
-product_translations = pd.read_csv(os.path.join(olist_path, 'olist_product_category_name_translation.csv'))
+product_translations = pd.read_csv(os.path.join(olist_path, 'product_category_name_translation.csv'))
 
 # Verify datasets loaded
 print(f"✓ Loaded {len(orders):,} orders")
