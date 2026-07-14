@@ -72,8 +72,6 @@ curriculum/phase-1-excel/weeks-01-06-teaching/week-06-power-query-part-2/02-thur
 
 # Phase 2a — all weeks hidden until Phase 2a starts
 
-curriculum/phase-2a-python/weeks-01-08-teaching/week-08-visualisation-and-streamlit/
-
 # Phase 2b — all weeks hidden until Phase 2b starts
 curriculum/phase-2b-sql/weeks-01-08-teaching/week-01-select-where-order-by/
 curriculum/phase-2b-sql/weeks-01-08-teaching/week-02-groupby-aggregates-having/
@@ -124,3 +122,7 @@ curriculum/phase-2a-python/weeks-01-08-teaching/week-06-data-cleaning/01-wednesd
 curriculum/phase-2a-python/weeks-01-08-teaching/week-06-data-cleaning/02-thursday/solutions/
 curriculum/phase-2a-python/weeks-01-08-teaching/week-07-merging-dataframes/01-wednesday/solutions/
 curriculum/phase-2a-python/weeks-01-08-teaching/week-07-merging-dataframes/02-thursday/solutions/
+
+# Week-08 solutions (week is live; solutions are instructor-only)
+curriculum/phase-2a-python/weeks-01-08-teaching/week-08-visualisation-and-streamlit/01-wednesday/solutions/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-08-visualisation-and-streamlit/02-thursday/solutions/
