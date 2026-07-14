@@ -127,6 +127,14 @@ def check_structure_exercises(nb_cells):
     return structure, missing
 
 
+def _strip_ipython_magics(source):
+    """Drop IPython line-magic (%...) and shell-escape (!...) lines so the
+    remainder can be checked as plain Python. A real kernel (used in
+    execution_check) interprets these lines natively; compile() cannot."""
+    kept = [line for line in source.split("\n") if not line.strip().startswith(("!", "%"))]
+    return "\n".join(kept)
+
+
 def syntax_check_cells(nb_cells):
     failures = []
     for i, cell in enumerate(nb_cells):
@@ -144,11 +152,14 @@ def syntax_check_cells(nb_cells):
             source = source.split("\n", 1)[1] if "\n" in source else ""
             if not source.strip():
                 continue
-        elif stripped.startswith("%") or stripped.startswith("!"):
-            # Other line/cell magics and shell escapes aren't standalone
-            # Python syntax; the nbconvert --execute pass runs them through
-            # a real IPython kernel instead of this static check.
+        elif stripped.startswith("%%"):
+            # Other cell magics (e.g. %%bash, %%time): the whole cell body is
+            # not standalone Python — defer to the real kernel in execution_check.
             continue
+        else:
+            source = _strip_ipython_magics(source)
+            if not source.strip():
+                continue
         try:
             compile(source, f"<cell_{i}>", "exec")
         except SyntaxError as e:
@@ -260,7 +271,7 @@ def parse_execution_failures(executed_path: str, original_cells):
     return failures
 
 
-def build_rework_notes(failures, cell_count_ok, total_cells, min_cells):
+def build_rework_notes(failures, cell_count_ok, total_cells, min_cells, max_cells=None):
     parts = []
     for i, f in enumerate(failures, 1):
         ci = f.get("cell_index")
@@ -273,11 +284,18 @@ def build_rework_notes(failures, cell_count_ok, total_cells, min_cells):
             parts.append(f"{i}. {et}: {hint}")
     if not cell_count_ok:
         n = len(parts) + 1
-        diff = min_cells - total_cells
-        parts.append(
-            f"{n}. Cell count {total_cells} below minimum {min_cells}: "
-            f"add {diff} more cells to §3 or §4"
-        )
+        if max_cells is not None and total_cells > max_cells:
+            over = total_cells - max_cells
+            parts.append(
+                f"{n}. Cell count {total_cells} above maximum {max_cells}: "
+                f"trim {over} cells (merge or cut lower-priority content)"
+            )
+        else:
+            diff = min_cells - total_cells
+            parts.append(
+                f"{n}. Cell count {total_cells} below minimum {min_cells}: "
+                f"add {diff} more cells to §3 or §4"
+            )
     return "\n".join(parts)
 
 
@@ -358,7 +376,7 @@ def main():
     cell_count_ok = min_cells <= total_cells <= max_cells
 
     # --- Compile rework_notes ---
-    rework_notes = build_rework_notes(failures, cell_count_ok, total_cells, min_cells)
+    rework_notes = build_rework_notes(failures, cell_count_ok, total_cells, min_cells, max_cells)
 
     status = "pass" if not failures and cell_count_ok else "fail"
 
