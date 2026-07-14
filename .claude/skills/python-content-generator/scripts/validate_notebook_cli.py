@@ -135,6 +135,20 @@ def syntax_check_cells(nb_cells):
         source = get_cell_text(cell)
         if not source.strip():
             continue
+        stripped = source.lstrip()
+        if stripped.startswith("%%writefile"):
+            # %%writefile is an IPython cell magic: the first line names the
+            # target file, everything after is literal file content (usually
+            # a Python app). Check that content, not the magic line itself —
+            # a real kernel (used in execution_check) handles the magic fine.
+            source = source.split("\n", 1)[1] if "\n" in source else ""
+            if not source.strip():
+                continue
+        elif stripped.startswith("%") or stripped.startswith("!"):
+            # Other line/cell magics and shell escapes aren't standalone
+            # Python syntax; the nbconvert --execute pass runs them through
+            # a real IPython kernel instead of this static check.
+            continue
         try:
             compile(source, f"<cell_{i}>", "exec")
         except SyntaxError as e:
