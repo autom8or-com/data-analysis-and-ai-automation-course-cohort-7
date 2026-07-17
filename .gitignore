@@ -8,17 +8,6 @@ PROMPTS.md
 # Claude Code local settings
 .claude/settings.local.json
 
-# Pipeline cache — per-week generation state and context bundles (machine-local)
-# Written by /python-content-generator and /python-week-context skills
-# week-NN-generation-state.json  → per-notebook checkpoint
-# week-NN-context.json           → extracted curriculum bundle
-# week-NN-*-validation.json      → cell execution results
-.pipeline-cache/
-
-# Environment variables — never commit; share with co-teachers directly
-.env
-.env.example
-
 # Raw dataset files — use the .zip files in each folder instead
 datasets/**/*.csv
 datasets/**/*.xlsx
@@ -31,9 +20,11 @@ datasets/**/*.xlsx
 # To release datasets/projects: delete the relevant line, commit.
 
 # Master curriculum reference files (instructor use only)
+curriculum/phase-1-excel/teaching-curriculum.md
+curriculum/phase-2a-python/teaching-curriculum.md
 curriculum/phase-2b-sql/teaching-curriculum.md
 curriculum/phase-2c-capstone/teaching-curriculum.md
-#curriculum/phase-3-ai-automation/teaching-curriculum.md
+curriculum/phase-3-ai-automation/teaching-curriculum.md
 
 # Phase 1 project specs — released at Week 7
 # Phase 1 project datasets — released at Week 7
@@ -71,6 +62,14 @@ curriculum/phase-1-excel/weeks-01-06-teaching/week-06-power-query-part-2/01-wedn
 curriculum/phase-1-excel/weeks-01-06-teaching/week-06-power-query-part-2/02-thursday/solutions/
 
 # Phase 2a — all weeks hidden until Phase 2a starts
+curriculum/phase-2a-python/weeks-01-08-teaching/week-01-python-fundamentals/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-02-collections-and-control-flow/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-03-functions-and-data/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-04-pandas-introduction/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-05-groupby-and-aggregation/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-06-data-cleaning/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-07-merging-dataframes/
+curriculum/phase-2a-python/weeks-01-08-teaching/week-08-visualisation-and-streamlit/
 
 # Phase 2b — all weeks hidden until Phase 2b starts
 curriculum/phase-2b-sql/weeks-01-08-teaching/week-01-select-where-order-by/
@@ -107,22 +106,3 @@ curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-21-dashboard-and-poli
 curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-22-productionization/
 curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-23-capstone-development/
 curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-24-final-presentations/
-
-curriculum/phase-2a-python/weeks-01-08-teaching/week-01-python-fundamentals/01-wednesday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-01-python-fundamentals/02-thursday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-02-collections-and-control-flow/01-wednesday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-02-collections-and-control-flow/02-thursday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-03-functions-and-data/01-wednesday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-03-functions-and-data/02-thursday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-04-pandas-introduction/01-wednesday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-04-pandas-introduction/02-thursday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-05-groupby-and-aggregation/01-wednesday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-05-groupby-and-aggregation/02-thursday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-06-data-cleaning/01-wednesday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-06-data-cleaning/02-thursday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-07-merging-dataframes/01-wednesday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-07-merging-dataframes/02-thursday/solutions/
-
-# Week-08 solutions (week is live; solutions are instructor-only)
-curriculum/phase-2a-python/weeks-01-08-teaching/week-08-visualisation-and-streamlit/01-wednesday/solutions/
-curriculum/phase-2a-python/weeks-01-08-teaching/week-08-visualisation-and-streamlit/02-thursday/solutions/
