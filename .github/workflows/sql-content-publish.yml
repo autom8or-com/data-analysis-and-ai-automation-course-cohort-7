@@ -1,0 +1,147 @@
+name: Content Publish — Phase 2b SQL
+
+# Triggered when the Claude Routine pushes a content/sql-week-* branch.
+# Creates the GitHub PR and sends the reviewer Telegram notification.
+# Keeps these mechanical ops out of the Claude Routine to save tokens.
+#
+# This is the SQL twin of content-publish.yml. It listens ONLY on
+# content/sql-week-* so it can never cross-fire with the Phase 2a Python
+# workflow (which listens on content/week-*).
+#
+# Notification matrix:
+#   Initial push (new PR)  → creates PR + sends "PR Ready" Telegram to reviewer group
+#   Re-push (rework)       → skips PR creation + skips Telegram
+#
+# Publish-ordering contract (fixes the Phase 2a Week 5 incident):
+#   The publisher uploads solutions to Google Drive and writes
+#   {WEEK_PATH}/.drive-solutions-url BEFORE committing, and commits that file.
+#   This workflow reads that file for the facilitator's Drive link. If it is
+#   MISSING we DO NOT fall back to a generic parent-folder link — we emit an
+#   explicit warning so nobody is sent a wrong link.
+
+on:
+  push:
+    branches: ['content/sql-week-*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.CONTENT_PIPELINE_PAT }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.CONTENT_PIPELINE_PAT }}
+
+      - name: Create PR and notify reviewer
+        shell: bash
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+
+          # Extract phase-level week number from branch name
+          # content/sql-week-01-select-where-order-by → 1
+          WEEK=$(echo "$BRANCH" | sed -E 's/content\/sql-week-0*([0-9]+).*/\1/')
+
+          # Find the week folder slug under the Phase 2b path
+          SLUG=$(ls -d curriculum/phase-2b-sql/weeks-01-08-teaching/$(printf '%02d' "$WEEK")-* 2>/dev/null | head -1 | xargs basename 2>/dev/null)
+          if [ -z "$SLUG" ]; then
+            echo "⚠ No week folder found for week $WEEK on branch $BRANCH — skipping"
+            exit 0
+          fi
+
+          WEEK_PATH="curriculum/phase-2b-sql/weeks-01-08-teaching/${SLUG}"
+
+          # Extract topic from teaching-curriculum.md heading (committed with content)
+          CURRICULUM="${WEEK_PATH}/teaching-curriculum.md"
+          if [ -f "$CURRICULUM" ]; then
+            TOPIC=$(head -1 "$CURRICULUM" | sed -E 's/^#+ Week [0-9]+ — //' | sed -E 's/^#+ //')
+          else
+            # Fallback: title-case the slug tail (drop the leading NN-)
+            TOPIC=$(echo "$SLUG" | sed -E 's/^[0-9]+-//' | tr '-' ' ')
+          fi
+
+          # Programme-level week (Phase 2b follows Phase 2a in the calendar)
+          OFFSET="${{ vars.PHASE_2B_WEEK_OFFSET }}"
+          OFFSET="${OFFSET:-16}"
+          PROGRAMME_WEEK=$((WEEK + OFFSET))
+
+          # Human review flag
+          REVIEW_NOTE=""
+          if [ -f "${WEEK_PATH}/NEEDS_HUMAN_REVIEW.md" ]; then
+            REVIEW_NOTE="⚠️ One or more notebooks flagged for human review — see NEEDS_HUMAN_REVIEW.md"
+          fi
+
+          # Check if a PR already exists for this branch
+          EXISTING_PR=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number // empty' 2>/dev/null)
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #${EXISTING_PR} already exists for branch ${BRANCH} — skipping creation and Telegram"
+            echo "pr_number=${EXISTING_PR}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Create the PR
+          PR_BODY=$(printf \
+            '## Phase 2b SQL — Week %s: %s\n**Programme Week:** %s\n\n### Generated Content\n- ✅ Wednesday demo notebook\n- ✅ Wednesday exercises notebook\n- ✅ Thursday demo notebook\n- ✅ Thursday exercises notebook\n- ✅ 2 lesson plans (self-contained)\n- 📂 Solutions uploaded to Google Drive (gitignored)\n\n%s\n\n### Validation\nAll `%%%%sql` cells validated against the file-based SQLite Olist database before commit.\n\n### Review Commands\nPost a comment with one of:\n- `/approve` — merge and publish to students\n- `/rework [your feedback]` — AI revises notebooks based on your notes\n- `/reject [reason]` — close PR and delete branch' \
+            "$WEEK" "$TOPIC" "$PROGRAMME_WEEK" "$REVIEW_NOTE")
+
+          gh pr create \
+            --title "Phase 2b SQL — Week ${WEEK}: ${TOPIC}" \
+            --body "$PR_BODY" \
+            --base main \
+            --head "$BRANCH"
+
+          PR_NUMBER=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number')
+          PR_URL="https://github.com/${GITHUB_REPOSITORY}/pull/${PR_NUMBER}"
+          echo "✅ PR created: ${PR_URL}"
+
+          # Content links — lesson plans on the branch (visible before merge)
+          REPO="autom8or-com/data-analysis-and-ai-automation-course-cohort-7"
+          WED_LESSON_URL="https://github.com/${REPO}/blob/${BRANCH}/${WEEK_PATH}/01-wednesday/lesson-plan.md"
+          THU_LESSON_URL="https://github.com/${REPO}/blob/${BRANCH}/${WEEK_PATH}/02-thursday/lesson-plan.md"
+          WEEK_PADDED=$(printf "%02d" "$WEEK")
+          WED_COLAB="https://colab.research.google.com/github/${REPO}/blob/${BRANCH}/${WEEK_PATH}/01-wednesday/lecture-materials/week-${WEEK_PADDED}-wed-demo.ipynb"
+          THU_COLAB="https://colab.research.google.com/github/${REPO}/blob/${BRANCH}/${WEEK_PATH}/02-thursday/lecture-materials/week-${WEEK_PADDED}-thu-demo.ipynb"
+
+          # Solutions Drive link — the publisher MUST have written this BEFORE the
+          # push that triggered us. If it is missing, DO NOT fall back to a generic
+          # parent-folder link (that is exactly the bug this workflow fixes) — emit
+          # an explicit warning instead so facilitators are never sent a wrong link.
+          DRIVE_URL_FILE="${WEEK_PATH}/.drive-solutions-url"
+          DRIVE_AVAILABLE=0
+          if [ -f "$DRIVE_URL_FILE" ] && [ -s "$DRIVE_URL_FILE" ]; then
+            DRIVE_URL=$(tr -d '[:space:]' < "$DRIVE_URL_FILE")
+          fi
+          if [ -n "${DRIVE_URL:-}" ]; then
+            DRIVE_AVAILABLE=1
+          else
+            echo "::warning title=Missing solutions link::${DRIVE_URL_FILE} not found or empty — the publisher did not commit the Drive URL before pushing. Sending an explicit 'link unavailable' notice instead of a fallback link."
+          fi
+
+          REVIEW_LINE=""
+          [ -n "$REVIEW_NOTE" ] && REVIEW_LINE=$(printf '\n&#9888;&#65039; %s' "$REVIEW_NOTE")
+
+          # Build the Drive line for the Telegram message.
+          if [ "$DRIVE_AVAILABLE" -eq 1 ]; then
+            DRIVE_LINE=$(printf '&#128194; <b>Solutions:</b> <a href="%s">Google Drive</a> &#8594; Week %s &#8212; %s' "$DRIVE_URL" "$WEEK" "$TOPIC")
+          else
+            DRIVE_LINE=$(printf '&#128194; <b>Solutions:</b> &#9888; solutions link unavailable &#8212; check Google Drive')
+          fi
+
+          # Telegram notification to reviewer group
+          MSG=$(printf '&#128236; <b>Phase 2b SQL &#8212; Week %s (Programme Week %s) PR Ready</b>\n\n<b>Topic:</b> %s\n<b>Branch:</b> <code>%s</code>\n<b>PR:</b> %s%s\n\n&#128218; <b>Lesson Plans (on branch):</b>\n&#8226; <a href="%s">Wednesday</a>\n&#8226; <a href="%s">Thursday</a>\n\n&#128211; <b>Demo Notebooks (open in Colab):</b>\n&#8226; <a href="%s">Wednesday Demo</a>\n&#8226; <a href="%s">Thursday Demo</a>\n\n%s\n\n&#9989; Notebooks validated\n\n<b>Review actions (comment on PR):</b>\n&#8226; <code>/approve</code> &#8212; merge and publish\n&#8226; <code>/rework [feedback]</code> &#8212; AI reworks notebooks\n&#8226; <code>/reject [reason]</code> &#8212; close and delete branch' \
+            "$WEEK" "$PROGRAMME_WEEK" "$TOPIC" "$BRANCH" "$PR_URL" "$REVIEW_LINE" \
+            "$WED_LESSON_URL" "$THU_LESSON_URL" \
+            "$WED_COLAB" "$THU_COLAB" \
+            "$DRIVE_LINE")
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_REVIEWER_CHAT_ID }}" \
+            -d "message_thread_id=${{ secrets.CONTENT_PIPELINE_TOPIC_ID }}" \
+            -d "parse_mode=HTML" \
+            --data-urlencode "text=${MSG}" \
+            || echo "⚠ Telegram notification failed (non-blocking)"

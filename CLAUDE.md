@@ -59,7 +59,7 @@ Each `teaching-curriculum.md` is the authoritative, fully detailed session plan.
 
 **Phase 2a — Python / Phase 2b — SQL**
 - Both use the Olist dataset: `datasets/phase-2-python-sql/olist-data.zip` (11 CSVs; unzip and upload to shared Google Drive)
-- SQL is taught via SQLite in-memory inside Google Colab (`sqlite3` + `pd.read_sql()`), not a standalone DB
+- SQL is taught via SQLite inside Google Colab using the `%%sql` cell magic (jupysql) so students write raw SQL, not `pd.read_sql()` strings. The setup cell loads the 8 tables into a **file-based** SQLite DB (`/content/olist.db`) — a file, not `:memory:`, because jupysql opens its own connection and an in-memory DB would be invisible to it — then `%load_ext sql` + `%config SqlMagic.autopandas = True` + `%sql sqlite:////content/olist.db`
 - DeepSeek AI introduced at Week 4 in both phases; Weeks 1–3 are no-AI
 - Key verified Olist stats are embedded throughout both curricula — do not alter them without re-running against the data
 
@@ -157,6 +157,17 @@ After creating Routine 2, copy its API URL and generate a token → add as GitHu
 **Per-notebook checkpoint**: `.pipeline-cache/week-NN-generation-state.json` (gitignored). Saves after each of 6 notebooks is validated. Re-running the pipeline resumes from the last validated notebook.
 
 **Per-week curriculum extract**: each released week now contains a `teaching-curriculum.md` (just that week's section, committed with the content branch). The master `curriculum/phase-2a-python/teaching-curriculum.md` remains gitignored.
+
+## Phase 2b SQL content pipeline
+
+A sibling of the Phase 2a pipeline, adapted for SQL. Invoked with `/sql-content-generator N` (or with no arg to auto-detect the next unreleased SQL week). It orchestrates the same four sub-skills: `/sql-week-context` → `/sql-notebook-generate` (×6) → `/sql-notebook-validate` (×6) → `/sql-week-publish`.
+
+**Key differences from the Python pipeline:**
+- **Query style:** SQL is taught with the `%%sql` cell magic (jupysql), not `pd.read_sql`. Every notebook's first code cell is `.claude/skills/sql-content-generator/assets/sql_setup.py` (file-based SQLite `/content/olist.db`, `%load_ext sql`, `autopandas=True`). Table/column/join reference: `.claude/skills/sql-content-generator/references/olist_schema.md`.
+- **Self-checking exercises:** each question is three cells — a markdown prompt, a `%%sql qN <<` answer cell (blank in exercises, filled in solutions), and a locked plain-Python check cell whose `assert`s (seeded from the curriculum's verified values) print `✅ Qn correct`. The validator's stronger gate executes the **solutions** notebook and confirms every check-cell assertion passes.
+- **Isolation:** SQL branches are `content/sql-week-NN-slug` (never `content/week-*`), and a separate workflow `.github/workflows/sql-content-publish.yml` (trigger `content/sql-week-*`) creates the PR + Telegram. The two pipelines never cross-fire.
+- **Publish ordering (fixes a Phase 2a defect):** `/sql-week-publish` uploads solutions to Drive **and writes `.drive-solutions-url` before the git commit**, so the file is in the commit that triggers the workflow. The workflow never silently falls back to a generic parent-folder link — if the URL file is missing it sends an explicit `⚠ solutions link unavailable` warning instead of a wrong link. (In Phase 2a the URL file was written after the push, so Week 5's facilitator Telegram link pointed at the whole phase folder.)
+- Checkpoint/context caches: `.pipeline-cache/sql-week-NN-generation-state.json` and `.pipeline-cache/sql-week-NN-context.json`. Validation needs `pip install jupysql` on top of the nbformat/nbconvert deps.
 
 ## Interruption recovery
 
