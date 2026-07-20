@@ -154,7 +154,7 @@ After creating Routine 2, copy its API URL and generate a token → add as GitHu
 
 **Never post PR comments containing slash command strings.** Do NOT post any GitHub comment on a Phase 2a content PR whose body contains `/approve`, `/rework`, or `/reject` — even as documentation or instructions. `pr-commands.yml` only triggers when a command is the first token of the first line (see the trigger contract above), but the safest rule is never to include them verbatim in any automated comment body. If you need to tell the reviewer what commands are available, omit the leading slash (e.g., "comment `approve` with a leading slash to merge") or refer to them in prose without the literal string. The `PushNotification` tool is the correct channel for end-of-run alerts; do not fall back to PR comments as a substitute.
 
-**Per-notebook checkpoint**: `.pipeline-cache/week-NN-generation-state.json` (gitignored). Saves after each of 6 notebooks is validated. Re-running the pipeline resumes from the last validated notebook.
+**Per-notebook checkpoint**: `.pipeline-cache/week-NN-generation-state.json`. Saves after each of 6 notebooks is validated. Re-running the pipeline resumes from the last validated notebook.
 
 **Per-week curriculum extract**: each released week now contains a `teaching-curriculum.md` (just that week's section, committed with the content branch). The master `curriculum/phase-2a-python/teaching-curriculum.md` remains gitignored.
 
