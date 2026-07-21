@@ -89,6 +89,8 @@ Never write `pd.read_sql(...)`, `conn.execute(...)`, or `sqlite3` cursor code in
 
 Respect the SQLite gotchas in `olist_schema.md`: dates are TEXT (use `strftime`), force REAL division with `* 1.0`, use `IS NULL` / `IS NOT NULL` (never `= NULL`), `!=` and `<>` both work, no `FULL OUTER JOIN`.
 
+**Join fan-out (critical):** `order_items`, `order_payments`, and `order_reviews` all hold **many rows per `order_id`**. Joining two of them directly and then aggregating multiplies rows and inflates the answer — this is exactly how a shipped Phase 2a notebook double-counted category revenue. Always pre-aggregate the non-base tables to one row per `order_id` in a `WITH` CTE before joining (see rule 10 and the worked pattern in `olist_schema.md`).
+
 ---
 
 ## MANDATORY SECTION STRUCTURE — Demo notebooks
@@ -245,6 +247,7 @@ Weeks 1–3 are **no-AI**. From Week 4, after §4 in demo notebooks add a "Using
 7. **Alias match** — check cells reference the exact column alias the answer query produces.
 8. **Setup first** — the `sql_setup.py` cell is the first code cell of every notebook.
 9. **No saved outputs** — `outputs: []` and `execution_count: null` on every cell.
+10. **No join fan-out** — never `SUM`/`AVG`/`COUNT(*)` across a query that directly joins **two or more** of `order_items`, `order_payments`, `order_reviews` (all are many-per-`order_id`). Collapse the non-base tables to one row per `order_id` in a CTE first, then join; use `COUNT(DISTINCT order_id)` instead of `COUNT(*)`. See the worked example in `olist_schema.md` → "Join cardinality & fan-out". The validator flags a `fanout_risk`; a query that pre-aggregates in a `WITH` CTE clears it.
 
 ---
 
