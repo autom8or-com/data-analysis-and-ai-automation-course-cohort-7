@@ -8,6 +8,10 @@ PROMPTS.md
 # Claude Code local settings
 .claude/settings.local.json
 
+# Pipeline cache — machine-local generation state, context bundles, validation reports
+# Written by the content-generator skills; never committed
+.pipeline-cache/
+
 # Raw dataset files — use the .zip files in each folder instead
 datasets/**/*.csv
 datasets/**/*.xlsx
