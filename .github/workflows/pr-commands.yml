@@ -44,7 +44,10 @@ jobs:
     # this pre-filter and then be rejected by the exact-shape + auth checks).
     if: |
       github.event.issue.pull_request != null &&
-      startsWith(github.event.issue.title, 'Phase 2a Python') &&
+      (
+        startsWith(github.event.issue.title, 'Phase 2a Python') ||
+        startsWith(github.event.issue.title, 'Phase 2b SQL')
+      ) &&
       (
         contains(github.event.comment.body, '/approve') ||
         contains(github.event.comment.body, '/reject') ||
