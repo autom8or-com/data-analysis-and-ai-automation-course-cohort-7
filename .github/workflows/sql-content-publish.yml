@@ -47,7 +47,7 @@ jobs:
           WEEK=$(echo "$BRANCH" | sed -E 's/content\/sql-week-0*([0-9]+).*/\1/')
 
           # Find the week folder slug under the Phase 2b path
-          SLUG=$(ls -d curriculum/phase-2b-sql/weeks-01-08-teaching/$(printf '%02d' "$WEEK")-* 2>/dev/null | head -1 | xargs basename 2>/dev/null)
+          SLUG=$(ls -d curriculum/phase-2b-sql/weeks-01-08-teaching/week-$(printf '%02d' "$WEEK")-* 2>/dev/null | head -1 | xargs basename 2>/dev/null)
           if [ -z "$SLUG" ]; then
             echo "⚠ No week folder found for week $WEEK on branch $BRANCH — skipping"
             exit 0
@@ -60,8 +60,8 @@ jobs:
           if [ -f "$CURRICULUM" ]; then
             TOPIC=$(head -1 "$CURRICULUM" | sed -E 's/^#+ Week [0-9]+ — //' | sed -E 's/^#+ //')
           else
-            # Fallback: title-case the slug tail (drop the leading NN-)
-            TOPIC=$(echo "$SLUG" | sed -E 's/^[0-9]+-//' | tr '-' ' ')
+            # Fallback: title-case the slug tail (drop the leading week-NN-)
+            TOPIC=$(echo "$SLUG" | sed -E 's/^week-[0-9]+-//' | tr '-' ' ')
           fi
 
           # Programme-level week (Phase 2b follows Phase 2a in the calendar)
