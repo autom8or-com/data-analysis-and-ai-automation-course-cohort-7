@@ -57,18 +57,24 @@
 Students run this block at the start of every session:
 
 ```python
+# Install the SQL cell-magic (once per session)
+!pip install jupysql -q
+
+import os
 import sqlite3
 import pandas as pd
-import os
+from google.colab import drive
 
 # Mount Google Drive
-from google.colab import drive
 drive.mount('/content/drive')
-
 DATA_DIR = "/content/drive/MyDrive/cohort7/datasets/olist"
 
-# Load all tables into SQLite in-memory database
-conn = sqlite3.connect(":memory:")
+# Build a FILE-based SQLite database.
+# (We use a file, not :memory:, because the %%sql magic opens its own
+#  connection — an in-memory DB would be invisible to it. A file on disk
+#  is shared by both pandas (loading) and %%sql (querying).)
+DB_PATH = "/content/olist.db"
+conn = sqlite3.connect(DB_PATH)
 
 tables = {
     "orders": "olist_orders_dataset.csv",
@@ -86,7 +92,13 @@ for table_name, filename in tables.items():
     df.to_sql(table_name, conn, if_exists="replace", index=False)
     print(f"Loaded {table_name}: {len(df):,} rows")
 
+conn.close()
 print("\nDatabase ready.")
+
+# Connect the %%sql magic to the SAME database file
+%load_ext sql
+%config SqlMagic.autopandas = True      # every %%sql cell returns a DataFrame
+%sql sqlite:////content/olist.db
 ```
 
 **Verify output:**
@@ -104,15 +116,34 @@ Database ready.
 
 ### How to Run Queries
 
-```python
-# Template — use this pattern for every query in this course
-result = pd.read_sql("""
-    SELECT *
-    FROM orders
-    LIMIT 5
-""", conn)
-result
+Write SQL directly in a cell using the `%%sql` magic — no Python wrapper. This is
+the pattern for **every** query in this course:
+
+```sql
+%%sql
+SELECT *
+FROM orders
+LIMIT 5
 ```
+
+To keep a result for a later check or calculation, capture it into a variable with
+`<<`. Because `autopandas` is on, the captured value is a pandas DataFrame:
+
+```sql
+%%sql delivered <<
+SELECT COUNT(*) AS n
+FROM orders
+WHERE order_status = 'delivered'
+```
+```python
+# `delivered` is now a DataFrame you can inspect or assert on
+print(delivered.iloc[0]["n"])   # 96478
+```
+
+> **Why `%%sql` and not `pd.read_sql(...)`?** You are learning SQL — you should read
+> and write raw SQL first, with no Python around it. Wrapping queries inside Python
+> strings comes later (Phase 2c). Every exercise this course ships checks your answer
+> automatically using the captured-variable pattern above.
 
 ---
 
