@@ -21,7 +21,7 @@ Instructor repository for the full programme curriculum, session materials, and 
 ## Course Progression
 
 ```mermaid
-flowchart TD
+flowchart LR
     A([🎓 Cohort 7 Start]) --> P1
 
     subgraph P1["Phase 1 — Excel  (9 weeks)"]
