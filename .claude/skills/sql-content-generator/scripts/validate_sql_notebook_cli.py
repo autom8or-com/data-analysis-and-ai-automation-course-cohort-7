@@ -30,11 +30,21 @@ SQL specifics (vs the Phase 2a Python validator this was adapted from):
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+# Tables with MANY rows per order_id. Directly joining two of these (or one of
+# them onto a fact column you then aggregate) fans out rows and inflates SUM/AVG/
+# COUNT(*). Verified grains (see references/olist_schema.md → "Join cardinality"):
+#   order_items    112,650 rows / 98,666 distinct order_id
+#   order_payments 103,886 rows / 99,440 distinct order_id
+#   order_reviews   99,224 rows / 98,673 distinct order_id
+FANOUT_FACT_TABLES = ("order_items", "order_payments", "order_reviews")
 
 
 # 8-section teaching structure markers (demo notebooks).
@@ -205,6 +215,75 @@ def syntax_check_cells(nb_cells):
                 "expected": "valid Python syntax",
                 "actual": str(e),
                 "fix_hint": f"Fix syntax on line {e.lineno}: {e.msg}",
+            })
+    return failures
+
+
+def _sql_body(source):
+    """Return the SQL of a %%sql cell with the magic header and comment lines
+    removed, lower-cased. Non-%%sql cells return ''. Comment lines (`--`) are
+    dropped so the deliberately-wrong SQL shown in the §6 "common mistakes"
+    comment block never trips the lint."""
+    stripped = source.lstrip()
+    if not stripped.startswith("%%sql"):
+        return ""
+    body = source.split("\n", 1)[1] if "\n" in source else ""
+    lines = []
+    for line in body.split("\n"):
+        code = line.split("--", 1)[0]  # drop trailing/whole-line SQL comments
+        if code.strip():
+            lines.append(code)
+    return " ".join(lines).lower()
+
+
+def _has_unsafe_aggregate(q):
+    """True if the query aggregates in a way fan-out would corrupt: any SUM(/AVG(,
+    or a COUNT( that is not COUNT(DISTINCT ...). COUNT(DISTINCT order_id) is
+    fan-out-safe and does NOT count."""
+    if re.search(r"\b(sum|avg)\s*\(", q):
+        return True
+    for m in re.finditer(r"\bcount\s*\(\s*([^)]*)", q):
+        if not m.group(1).strip().startswith("distinct"):
+            return True
+    return False
+
+
+def fanout_check(nb_cells):
+    """Static lint for join fan-out. Flags a %%sql cell whose query directly
+    references (FROM/JOIN) two or more of the many-per-order fact tables AND uses
+    an unsafe aggregate — unless it pre-aggregates in a WITH CTE (the correct
+    fix, which makes the raw table appear only inside the CTE). This catches the
+    Phase 2a Week-7 defect where order_items JOIN order_reviews + SUM(price)
+    double-counted category revenue."""
+    failures = []
+    for i, cell in enumerate(nb_cells):
+        if cell.get("cell_type") != "code":
+            continue
+        q = _sql_body(get_cell_text(cell))
+        if not q:
+            continue
+        # A WITH CTE is the sanctioned pre-aggregation escape hatch.
+        if re.search(r"\bwith\b", q):
+            continue
+        present = {
+            t for t in FANOUT_FACT_TABLES
+            if re.search(r"\b(from|join)\s+" + t + r"\b", q)
+        }
+        if len(present) >= 2 and _has_unsafe_aggregate(q):
+            joined = ", ".join(sorted(present))
+            failures.append({
+                "cell_index": i,
+                "cell_source_snippet": get_cell_text(cell)[:100],
+                "error_type": "fanout_risk",
+                "expected": "aggregate over one-row-per-order grain (no join fan-out)",
+                "actual": f"query joins {joined} directly and then aggregates",
+                "fix_hint": (
+                    f"Join fan-out: {joined} each hold many rows per order_id, so joining "
+                    f"them directly multiplies rows and inflates SUM/AVG/COUNT(*). "
+                    f"Pre-aggregate the non-base table(s) to one row per order_id in a WITH "
+                    f"CTE before joining, and use COUNT(DISTINCT order_id). See "
+                    f"references/olist_schema.md → 'Join cardinality & fan-out'."
+                ),
             })
     return failures
 
@@ -441,6 +520,12 @@ def main():
     # --- Syntax check (all weeks; %%sql cells are skipped) ---
     syntax_failures = syntax_check_cells(nb_cells)
     failures.extend(syntax_failures)
+
+    # --- Join fan-out lint (all notebook types; demo/exercises/solutions) ---
+    # Static guard against the Phase 2a Week-7 class of defect: aggregating a
+    # fact column across a direct join of two many-per-order tables.
+    fanout_failures = fanout_check(nb_cells)
+    failures.extend(fanout_failures)
 
     # --- Execution check (demo/solutions only, skipped if syntax errors) ---
     # Exercise notebooks have blank %%sql answer cells; executing them would
