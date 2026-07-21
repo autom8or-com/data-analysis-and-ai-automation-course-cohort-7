@@ -108,3 +108,7 @@ curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-21-dashboard-and-poli
 curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-22-productionization/
 curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-23-capstone-development/
 curriculum/phase-3-ai-automation/weeks-01-24-teaching/week-24-final-presentations/
+
+# Python bytecode cache (e.g. from running the validator locally)
+__pycache__/
+*.pyc
