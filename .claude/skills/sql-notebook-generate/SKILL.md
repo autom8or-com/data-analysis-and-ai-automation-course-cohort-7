@@ -58,10 +58,11 @@ When given rework notes, treat them as the primary improvement specification. Ap
 
 The **first code cell of every notebook** — demo, exercises, and solutions alike — is the verbatim contents of `.claude/skills/sql-content-generator/assets/sql_setup.py`. Read that file and paste its contents as the cell source. Do not paraphrase, trim, or "improve" it. It:
 
-- mounts Drive and loads the 8 Olist CSVs into a **file-based** SQLite DB at `/content/olist.db`;
-- runs `%load_ext sql`, sets `%config SqlMagic.autopandas = True`, and connects jupysql via `%sql sqlite:////content/olist.db`.
+- is **Colab/local portable**: it detects Colab (`try: import google.colab`) and, on Colab, mounts Drive and unzips `phase-2-python-sql.zip` located via explicit likely paths + a **bounded** search (never a full-Drive recursive glob, which hangs); off Colab it auto-detects the CSV folder (and honours `OLIST_DATA_PATH` / `OLIST_DB_PATH`, which the validator sets). Students can set `DRIVE_ZIP_PATH` / `LOCAL_DATA_DIR` if auto-detect misses.
+- loads the 8 Olist CSVs into a **file-based** SQLite DB (a file, not `:memory:`, so the SQL magic's own connection can see the tables);
+- on Colab installs **jupysql** (`%pip install --quiet --upgrade jupysql`) so `%load_ext sql` uses it instead of Colab's legacy **ipython-sql**; then sets `autopandas=True` and connects with `run_line_magic('sql', f'sqlite:///{DB_PATH}')` (a URL string, so the computed path interpolates). Off Colab jupysql is already installed, so the install is skipped.
 
-Because `autopandas = True`, **every `%%sql` result is a pandas DataFrame** — which is what makes the self-check cells able to `assert` on `.iloc` / `.shape` directly.
+jupysql is essential on Colab: the legacy ipython-sql cannot take a connection by engine variable **and** renders every result through `prettytable.__dict__[style]`, which crashes on modern prettytable (`KeyError: 'DEFAULT'`/`'SINGLE_BORDER'`) for *every* query regardless of autopandas. On jupysql, `autopandas = True` makes every `%%sql` result a pandas DataFrame — which is what makes the self-check cells able to `assert` on `.iloc` / `.shape` directly. **Never set `%config SqlMagic.style`.**
 
 The markdown title cell precedes the setup cell in every notebook (title first, then setup).
 
@@ -151,7 +152,15 @@ WHERE order_delivered_customer_date IS NULL   -- Expected: 2,965
 
 ### §7 — Mini-Challenge (1 markdown + 1 `%%sql` scaffold cell)
 
-A 5–10 minute individual task solvable with only today's clauses. Markdown states the task and the expected result; the code cell is a `%%sql` scaffold with `-- Your query here`. Include `⏱ ~5 minutes`.
+A 5–10 minute individual task solvable with only today's clauses. Markdown states the task and the expected result. The code cell is a **runnable** `%%sql` scaffold — a comment inviting the student to replace it, plus a trivial valid statement so a top-to-bottom "Run All" of the demo stays clean:
+
+```sql
+%%sql
+-- ⏱ ~5 min — your turn! Replace the placeholder below with your own query.
+SELECT 'write your query here' AS todo
+```
+
+Do NOT leave the demo scaffold as a bare `%%sql` + `-- Your query here` with no statement: jupysql raises `UnboundLocalError` on an empty query, which crashes the demo on Run All and fails the Week 3+ execution gate. (Exercise notebooks are different — their `%%sql qN <<` answer cells stay genuinely blank, because the validator never executes exercise notebooks.)
 
 ### §8 — Summary + Preview (1 markdown cell)
 
@@ -196,11 +205,12 @@ The core deliverable of this skill is the **three-cell self-checking exercise pa
 ```
 (In an **exercises** notebook this stays blank. In a **solutions** notebook it is filled with the real `SELECT`.)
 
-**(c) Check code cell** — plain Python, marked do-not-edit, asserting on the captured DataFrame with the verified value, then a ✅ print:
+**(c) Check code cell** — plain Python, marked do-not-edit, asserting on the captured DataFrame with the verified value, then a ✅ print, then **displaying `qN`** as the cell's last expression so the student sees the result table their query returned (the `%%sql qN <<` capture above is silent, so without this they'd see only the tick):
 ```python
 # --- CHECK QN — do not edit ---
 assert int(qN.iloc[0]['n']) == 96478, "QN: expected 96,478 delivered orders"
 print("✅ QN correct")
+qN  # show the result of your query
 ```
 
 Because `autopandas = True`, `qN` is a pandas DataFrame. Seed every assertion from a value that appears verbatim in `teaching-curriculum.md` or `olist_schema.md`. Match the column alias used in the answer query (`AS n` → `qN.iloc[0]['n']`). For non-count checks use `.shape` (row count of a `LIMIT`/list query), `.iloc[0][col]`, or `round(float(...), 2)` for money/averages.
@@ -281,7 +291,8 @@ nb.cells.append(nbformat.v4.new_code_cell("%%sql q1 <<\n-- Your query here"))
 nb.cells.append(nbformat.v4.new_code_cell(
     "# --- CHECK Q1 — do not edit ---\n"
     "assert int(q1.iloc[0]['n']) == 96478, \"Q1: expected 96,478 delivered orders\"\n"
-    "print(\"✅ Q1 correct\")"
+    "print(\"✅ Q1 correct\")\n"
+    "q1  # show the result of your query"
 ))
 
 for c in nb.cells:                      # never save pre-run outputs

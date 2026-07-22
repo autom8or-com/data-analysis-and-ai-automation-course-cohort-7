@@ -1,6 +1,6 @@
 # Olist Schema — Phase 2b SQL
 
-8 tables loaded into a **file-based** SQLite DB (`/content/olist.db`) by `sql_setup.py`.
+8 tables loaded into a **file-based** SQLite DB by `sql_setup.py` (`/content/olist.db` on Colab, a local temp `.db` otherwise).
 All names/rows verified against `curriculum/phase-2b-sql/teaching-curriculum.md`.
 Table names below are the **SQLite table names** students query (not the CSV filenames).
 

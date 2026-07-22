@@ -175,7 +175,7 @@ pip install nbformat nbconvert jupyter_client ipykernel jupysql -q
 
 Process notebooks in this order: `wed-demo`, `wed-exercises`, `wed-solutions`, `thu-demo`, `thu-exercises`, `thu-solutions`. Notebook filenames are `week-NN-{wed,thu}-{demo,exercises,solutions}.ipynb`.
 
-Every notebook's **first code cell** is the `sql_setup.py` content (file-based SQLite `/content/olist.db` + `%load_ext sql` + `autopandas = True` + `%sql sqlite:////content/olist.db`). Teaching/answer cells are `%%sql` cells with raw SQL. Each exercise question is a markdown cell (question + expected hint) followed by an answer cell `%%sql qN <<` (blank in exercises, filled in solutions) and a locked plain-Python check cell whose `assert`s come from the verified values in the context bundle and print `✅ Qn correct`.
+Every notebook's **first code cell** is the `sql_setup.py` content — the Colab/local-portable setup (installs jupysql on Colab, file-based SQLite, `autopandas = True`, URL-string connect). Teaching/answer cells are `%%sql` cells with raw SQL. Each exercise question is a markdown cell (question + expected hint) followed by an answer cell `%%sql qN <<` (blank in exercises, filled in solutions) and a locked plain-Python check cell whose `assert`s come from the verified values in the context bundle and print `✅ Qn correct`.
 
 For each notebook that is NOT already `status: "validated"`:
 
