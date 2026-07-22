@@ -115,7 +115,7 @@ Lesson plan format — self-contained, not "see teaching-curriculum.md":
 
 - [ ] Olist CSVs accessible on Google Drive (shared folder link in Telegram)
 - [ ] Demo notebook open in Colab: [notebook filename]
-- [ ] `sql_setup.py` first cell runs and loads all 8 tables into /content/olist.db
+- [ ] Setup cell runs and loads all 8 tables (Colab: Drive mounted + dataset zip present; local: CSVs auto-detected)
 - [ ] Student exercise link ready to share
 - [ ] Projector connected, Colab running
 

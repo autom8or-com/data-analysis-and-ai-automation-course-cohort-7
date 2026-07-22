@@ -303,6 +303,15 @@ def execution_check(notebook_path: str):
     with open(notebook_path) as f:
         nb = json.load(f)
 
+    # The current setup cell (sql_setup.py) is Colab/local portable: it detects
+    # "not Colab" via `try: import google.colab / except ModuleNotFoundError`,
+    # reads the Olist CSV folder from $OLIST_DATA_PATH and the DB path from
+    # $OLIST_DB_PATH, and connects via a SQLAlchemy engine variable. So no source
+    # rewriting is needed here — we just pass those env vars to the kernel below.
+    #
+    # The string replacements below are a BACKWARD-COMPAT fallback for any older
+    # notebook still carrying the hardcoded /content setup cell. They are no-ops
+    # against the portable cell (the literal strings no longer appear).
     for cell in nb.get("cells", []):
         if cell.get("cell_type") == "code":
             src = get_cell_text(cell)
@@ -355,6 +364,11 @@ def execution_check(notebook_path: str):
         tmp_path = tmp.name
 
     out_path = tmp_path.replace(".ipynb", "-executed.ipynb")
+    # The portable setup cell reads these at runtime: OLIST_DATA_PATH → the raw
+    # Olist CSV folder, OLIST_DB_PATH → the fresh temp .db to build/query.
+    exec_env = os.environ.copy()
+    exec_env["OLIST_DATA_PATH"] = olist_data_path
+    exec_env["OLIST_DB_PATH"] = db_path
     try:
         result = subprocess.run(
             [
@@ -369,6 +383,7 @@ def execution_check(notebook_path: str):
             capture_output=True,
             text=True,
             timeout=420,
+            env=exec_env,
         )
         # nbconvert returns non-zero when a cell raises (including
         # AssertionError). We still want to parse per-cell errors from the
