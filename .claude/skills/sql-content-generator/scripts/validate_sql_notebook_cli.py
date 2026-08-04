@@ -312,23 +312,18 @@ def execution_check(notebook_path: str):
     # The string replacements below are a BACKWARD-COMPAT fallback for any older
     # notebook still carrying the hardcoded /content setup cell. They are no-ops
     # against the portable cell (the literal strings no longer appear).
+    #
+    # IMPORTANT: do NOT comment out `from google.colab import drive` here. The
+    # portable cell relies on that import raising ModuleNotFoundError to set
+    # ON_COLAB = False; commenting out just the import line (but not the
+    # `ON_COLAB = True` that follows in the same try block) leaves the try
+    # block succeeding unconditionally, forcing every validation run down the
+    # Colab code path regardless of environment. Off Colab, the import already
+    # raises ModuleNotFoundError on its own (no google-colab package installed
+    # here), so no rewriting of these lines is needed or safe.
     for cell in nb.get("cells", []):
         if cell.get("cell_type") == "code":
             src = get_cell_text(cell)
-
-            # Neutralise Colab-only Drive lines (they fail outside Colab).
-            src = src.replace(
-                "from google.colab import drive",
-                "# from google.colab import drive  # removed for validation",
-            )
-            src = src.replace(
-                "drive.mount('/content/drive')",
-                "# drive.mount('/content/drive')  # removed for validation",
-            )
-            src = src.replace(
-                'drive.mount("/content/drive")',
-                '# drive.mount("/content/drive")  # removed for validation',
-            )
 
             # Point DATA_DIR at the locally extracted Olist CSV folder.
             src = src.replace(
