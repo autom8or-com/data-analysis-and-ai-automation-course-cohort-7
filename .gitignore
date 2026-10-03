@@ -1,9 +1,21 @@
 # Local prompt scratch pad
 PROMPTS.md
-
+.env
 # macOS metadata
 .DS_Store
 **/.DS_Store
+
+# Office lock/temp files — Excel and Word create these while a document is open
+# and leave them behind if the app is force-quit. They are never content.
+~$*
+~$*.xlsx
+~$*.xls
+~$*.docx
+~$*.pptx
+.~lock.*
+*.tmp
+Thumbs.db
+desktop.ini
 
 # Claude Code local settings
 .claude/settings.local.json
@@ -27,6 +39,11 @@ datasets/**/*.xlsx
 curriculum/phase-1-excel/teaching-curriculum.md
 curriculum/phase-2a-python/teaching-curriculum.md
 curriculum/phase-2c-capstone/teaching-curriculum.md
+
+# Phase 2c project scaffold — master README + 4 team briefs with pre-validated
+# SQL queries and their real results. Instructor-only until Phase 2c starts.
+# To release: delete this line and commit.
+curriculum/phase-2c-capstone/project/
 
 # Phase 1 project specs — released at Week 7
 # Phase 1 project datasets — released at Week 7
