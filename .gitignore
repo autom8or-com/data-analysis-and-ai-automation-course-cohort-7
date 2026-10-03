@@ -38,7 +38,6 @@ datasets/**/*.xlsx
 # Master curriculum reference files (instructor use only)
 curriculum/phase-1-excel/teaching-curriculum.md
 curriculum/phase-2a-python/teaching-curriculum.md
-curriculum/phase-2c-capstone/teaching-curriculum.md
 
 
 # Phase 1 project specs — released at Week 7
